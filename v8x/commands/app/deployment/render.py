@@ -30,7 +30,7 @@ def _format_datetime(datetime_str: str) -> str:
     try:
         dt = datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
         return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
-    except ValueError, AttributeError:
+    except (ValueError, AttributeError):
         return datetime_str
 
 
@@ -124,7 +124,7 @@ def render_deployments_table(
             try:
                 dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
                 created_at = dt.strftime("%Y-%m-%d %H:%M")
-            except ValueError, AttributeError:
+            except (ValueError, AttributeError):
                 # Keep original if parsing fails
                 pass
 

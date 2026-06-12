@@ -147,7 +147,7 @@ class Deployment(BaseModel):
         """Get formatted creation timestamp."""
         try:
             return self.created_at.strftime("%Y-%m-%d %H:%M")
-        except ValueError, AttributeError:
+        except (ValueError, AttributeError):
             return str(self.created_at)
 
     @computed_field
@@ -159,7 +159,7 @@ class Deployment(BaseModel):
         """
         try:
             return self.created_at.strftime("%Y%m%d%H%M%S%f")
-        except ValueError, AttributeError:
+        except (ValueError, AttributeError):
             # Fallback: use timestamp as integer string
             return str(int(self.created_at.timestamp() * 1000000))
 

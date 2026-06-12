@@ -1334,7 +1334,7 @@ class UniversalOutputFormatter:
         try:
             terminal_size = shutil.get_terminal_size(fallback=(fallback_width, 20))
             width = max(terminal_size.columns, 40)
-        except OSError, ValueError:  # pragma: no cover - rare environments
+        except (OSError, ValueError):  # pragma: no cover - rare environments
             width = fallback_width
 
         if width != getattr(self.console, "width", width):

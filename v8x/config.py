@@ -264,7 +264,7 @@ def get_active_profile() -> str:
     if V8X_ACTIVE_PROFILE.exists():
         try:
             return V8X_ACTIVE_PROFILE.read_text().strip()
-        except FileNotFoundError, PermissionError:
+        except (FileNotFoundError, PermissionError):
             pass
     return "default"
 

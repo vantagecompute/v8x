@@ -35,7 +35,7 @@ def load_profiles() -> Dict[str, Any]:
     try:
         data = json.loads(USER_CONFIG_FILE.read_text())
         return data if isinstance(data, dict) else {}
-    except json.JSONDecodeError, FileNotFoundError:
+    except (json.JSONDecodeError, FileNotFoundError):
         return {}
 
 

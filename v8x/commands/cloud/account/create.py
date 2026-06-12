@@ -141,7 +141,7 @@ def _register_lxd_client_cert(
                 body = response_str[body_start:]
                 error_data = json.loads(body)
                 error_msg = error_data.get("error", body)
-            except ValueError, json.JSONDecodeError:
+            except (ValueError, json.JSONDecodeError):
                 error_msg = response_str[:500]
             raise Exception(f"LXD API error: {status_line} - {error_msg}")
 
