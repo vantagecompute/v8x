@@ -1,0 +1,68 @@
+__pycache__/
+**/__pycache__/
+**/**/__pycache__/
+
+# Docusaurus
+docs/node_modules
+docs/yarn-global
+docs/yarn-cache
+docs/.docusaurus
+docs/build
+docs/.yarn
+docs/yarn-error.log
+docs/npm-debug.log*
+docs/yarn-debug.log*
+
+
+# Python virtual environments
+.venv
+venv/
+env/
+.env
+**/.env
+
+# Coverage reports
+.coverage
+cover_unit
+cover_integration
+cover_combined
+.coverage.*
+coverage
+cover/
+htmlcov/
+
+# Testing and linting
+.tox/
+.nox/
+.pytest_cache/
+.pytest_cache/**
+.pytest_cache/**/*
+.pytest_cache/**/*
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+.dmypy.json/**
+.pyre/
+.pyre/**
+.pyre/**/*
+
+# Jupyter
+.ipynb_checkpoints
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tar.gz
+*.tgz

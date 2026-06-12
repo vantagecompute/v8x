@@ -1,0 +1,80 @@
+# Copyright (C) 2025 Vantage Compute Corporation
+# GPL-3.0 — see LICENSE.
+"""List available inference runtimes."""
+
+import json
+
+import typer
+from typing_extensions import Annotated
+from vantage_sdk.exceptions import Abort
+
+from v8x.auth import attach_persona
+from v8x.config import attach_settings
+from v8x.exceptions import handle_abort
+from v8x.vantage_rest_api_client import attach_vantage_rest_client
+
+from ._helpers import (
+    get_auth_headers,
+    get_cluster_with_creds,
+    get_http_client,
+    get_vdeployer_web_url,
+)
+
+
+@handle_abort
+@attach_settings
+@attach_persona
+@attach_vantage_rest_client
+async def list_runtimes(
+    ctx: typer.Context,
+    cluster_name: Annotated[str, typer.Option("--cluster", "-c", help="Cluster name")],
+):
+    """List available inference runtimes on a cluster.
+
+    Examples:
+        v8x cluster inference-endpoint runtimes -c my-cluster
+    """
+    console = ctx.obj.console
+    try:
+        cluster = await get_cluster_with_creds(ctx, cluster_name)
+        url = f"{get_vdeployer_web_url(cluster.client_id, ctx.obj.settings.vantage_url)}/inferences/runtimes"
+
+        async with get_http_client() as client:
+            response = await client.get(url, headers=get_auth_headers(ctx))
+
+        if response.status_code != 200:
+            raise Abort(f"Failed: {response.text}", subject="API Error")
+
+        items = response.json()
+
+        if ctx.obj.json_output:
+            print(json.dumps(items, default=str))
+            return
+
+        if not items:
+            console.print("No runtimes found")
+            return
+
+        from rich.table import Table
+
+        table = Table(title="Inference Runtimes")
+        table.add_column("Name", style="bold")
+        table.add_column("Display Name")
+        table.add_column("Kind")
+        table.add_column("GPU")
+
+        for r in items:
+            table.add_row(
+                r.get("name", ""),
+                r.get("display_name", ""),
+                r.get("kind", ""),
+                "[green]yes[/green]" if r.get("is_gpu_runtime") else "[dim]no[/dim]",
+            )
+        console.print(table)
+
+    except Abort:
+        raise
+    except Exception as e:
+        ctx.obj.formatter.render_error(
+            error_message="Failed to list runtimes.", details={"error": str(e)}
+        )

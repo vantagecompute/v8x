@@ -1,0 +1,148 @@
+[project]
+name = "v8x"
+version = "0.1.1"
+description = "The v8x CLI for Vantage Compute."
+authors = [
+    {name = "jamesbeedy", email = "james@vantagecompute.ai"}
+]
+readme = "README.md"
+license = {text = "GPL-3.0"}
+requires-python = ">=3.12"
+dependencies = [
+    "websockets>=16.0",
+    "typer>=0.21.1",
+    "rich>=14.3.2",
+    "textual>=7.5.0",
+    "ruamel.yaml>=0.19.1",
+    "pydantic>=2.12.5",
+    "snick>=3.0.0",
+    "py-buzz>=8.0.0",
+    "loguru>=0.7.3",
+    "httpx>=0.28.1",
+    "python-jose[cryptography]>=3.5.0",
+    "pendulum>=3.2.0",
+    "gql>=4.0.0",
+    "aiohttp>=3.13.3",
+    "requests-toolbelt>=1.0.0",
+    "anyio>=4.12.1",
+    "pyyaml>=6.0.3",
+    "pyopenssl>=25.3.0",
+    "graphifyy>=0.8.26",
+    "vantage-sdkpy>=0.1.9",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["v8x"]
+exclude = [
+    "git-cliff-*",
+    "justfile",
+    "docs",
+    "tests",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "git-cliff-*",
+    "justfile",
+    "docs",
+    "tests",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[project.optional-dependencies]
+dev = [
+    # Linting
+    "black>=26.1.0",
+    "ruff>=0.15.0",
+    "codespell>=2.4.1",
+    "pyright>=1.1.408",
+    # Testing
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "respx>=0.22.0",
+    "coverage[toml]>=7.13.3",
+]
+
+[project.scripts]
+v8x = "v8x.main:app"
+
+
+[tool.coverage.run]
+branch = true
+omit = [
+    # Exclude new stub command modules from coverage
+    "v8x/commands/job/*",
+    "v8x/commands/support_ticket/*",
+    "v8x/commands/team/*",
+    "v8x/commands/federation/*",
+    # Exclude existing stub command modules with low coverage
+    "v8x/commands/license/*",
+    "v8x/commands/storage/*",
+    "v8x/commands/network/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.coverage.paths]
+source = ["v8x"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+log_cli_level = "INFO"
+filterwarnings = [
+    "ignore::DeprecationWarning:juju.client.connection",
+    "ignore::DeprecationWarning:websockets.legacy",
+]
+
+# Spell checking tools configuration
+[tool.codespell]
+skip = ".venv,venv,icon.svg,.tox,.git,.mypy_cache,.ruff_cache,.pytest_cache,.vscode,.coverage,.venv,cover"
+ignore-words-list = "aks"
+
+# Formatting tools configuration
+[tool.black]
+line-length = 99
+target-version = ["py312"]
+
+# Linting tools configuration
+[tool.ruff]
+line-length = 99
+lint.select = ["E", "W", "F", "C", "N", "D", "I001"]
+lint.extend-ignore = [
+    "D203",
+    "D204",
+    "D213",
+    "D215",
+    "D400",
+    "D404",
+    "D406",
+    "D407",
+    "D408",
+    "D409",
+    "D413",
+]
+lint.ignore = ["E501", "D107"]
+lint.per-file-ignores = { "**/tests/*" = [
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+] }
+extend-exclude = ["__pycache__", "*.egg_info"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.0.0",
+    "types-pyyaml>=6.0.12.20250915",
+]

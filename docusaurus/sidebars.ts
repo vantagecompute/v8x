@@ -1,0 +1,69 @@
+import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
+
+// This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
+
+/**
+ * Creating a sidebar enables you to:
+ - create an ordered group of docs
+ - render a sidebar for each doc of that group
+ - provide next/previous navigation
+
+ The sidebars can be generated from the filesystem, or explicitly defined here.
+
+ Create as many sidebars as you want.
+ */
+const sidebars: SidebarsConfig = {
+  // Manually curated sidebar for v8x documentation
+  tutorialSidebar: [
+    'index', // Homepage/Overview
+    {
+      type: 'category',
+      label: 'Getting Started',
+      items: [
+        'installation',
+        'usage',
+        'private-vantage-installation',
+        {
+          type: 'category',
+          label: 'Deployment Applications',
+          link: {
+            type: 'doc',
+            id: 'deployment-applications/index',
+          },
+          items: [
+            {
+              type: 'category',
+              label: 'Localhost',
+              items: [
+                'deployment-applications/localhost/charmed-hpc/index',
+                'deployment-applications/localhost/microk8s/index',
+                'deployment-applications/localhost/multipass/index',
+              ],
+            },
+          ],
+        },
+        'notebooks',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Reference',
+      items: [
+        'commands',
+        'storage-import-expose',
+        'architecture',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Support',
+      items: [
+        'troubleshooting',
+        'contact',
+        'contributing',
+      ],
+    },
+  ],
+};
+
+export default sidebars;
