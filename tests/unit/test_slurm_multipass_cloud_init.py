@@ -45,7 +45,7 @@ def test_write_files_contain_sssd_config() -> None:
 
     sssd_file = next(f for f in write_files if f["path"] == "/etc/sssd/sssd.conf")
     assert sssd_file["permissions"] == "0600"
-    assert "services = nss, pam, ssh" in sssd_file["content"]
+    assert "services = nss, pam, ssh, sudo" in sssd_file["content"]
     assert "ou=org-123,ou=organizations" in sssd_file["content"]
     assert "ldap://ldap.example.com" in sssd_file["content"]
     assert "binder-secret" in sssd_file["content"]
@@ -112,6 +112,9 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
     pam_setup = runcmd[2]
     assert "pam-auth-update --enable sss" in pam_setup
     assert "pam-auth-update --enable mkhomedir" in pam_setup
+    assert "authselect select sssd with-mkhomedir --force" in pam_setup
+    assert "oddjobd.service" in pam_setup
+    assert "sshd.service" in pam_setup
     assert "sssd.service" in pam_setup
 
     # runcmd[3]: JWKS config
@@ -132,18 +135,24 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
     assert "slurm.conf" in resolve_command
     assert "slurmdbd.conf" in resolve_command
 
-    # runcmd[5-12]: slurm services
-    assert runcmd[5] == "systemctl enable slurmdbd"
-    assert runcmd[6] == "systemctl restart slurmdbd"
-    assert runcmd[7] == "systemctl enable slurmctld"
-    assert runcmd[8] == "systemctl restart slurmctld"
-    assert runcmd[9] == "systemctl enable slurmd"
-    assert runcmd[10] == "systemctl restart slurmd"
-    assert runcmd[11] == "systemctl enable slurmrestd"
-    assert runcmd[12] == "systemctl restart slurmrestd"
+    # runcmd[5]: database initialization
+    database_command = runcmd[5]
+    assert "systemctl enable --now \"$database_service\"" in database_command
+    assert "CREATE USER IF NOT EXISTS 'slurm'@'localhost'" in database_command
+    assert "CREATE DATABASE IF NOT EXISTS slurm" in database_command
 
-    # runcmd[13]: vantage-agent install
-    agent_command = runcmd[13]
+    # runcmd[6-13]: slurm services
+    assert runcmd[6] == "systemctl enable slurmdbd"
+    assert runcmd[7] == "systemctl restart slurmdbd"
+    assert runcmd[8] == "systemctl enable slurmctld"
+    assert runcmd[9] == "systemctl restart slurmctld"
+    assert runcmd[10] == "systemctl enable slurmd"
+    assert runcmd[11] == "systemctl restart slurmd"
+    assert runcmd[12] == "systemctl enable slurmrestd"
+    assert runcmd[13] == "systemctl restart slurmrestd"
+
+    # runcmd[14]: vantage-agent install
+    agent_command = runcmd[14]
     assert "grant_type=client_credentials" in agent_command
     assert "Authorization: Bearer $AUTH_TOKEN" in agent_command
     assert "snap install --classic --dangerous /tmp/${SNAP_NAME}.snap" in agent_command

@@ -153,17 +153,31 @@ SH""",
             """bash <<'SH'
 set -euo pipefail
 
-apt-get update -qq && apt-get install -y -qq libsss-sudo
-pam-auth-update --enable sss
-pam-auth-update --enable mkhomedir
-systemctl restart ssh
-systemctl --now enable sssd.service
+if command -v apt-get >/dev/null 2>&1; then
+    apt-get update -qq
+    apt-get install -y -qq libsss-sudo
+    pam-auth-update --enable sss
+    pam-auth-update --enable mkhomedir
+elif command -v authselect >/dev/null 2>&1; then
+    authselect select sssd with-mkhomedir --force
+    systemctl enable --now oddjobd.service
+fi
+
+if systemctl cat sshd.service >/dev/null 2>&1; then
+    systemctl restart sshd.service
+elif systemctl cat ssh.service >/dev/null 2>&1; then
+    systemctl restart ssh.service
+fi
+
+systemctl enable --now sssd.service
+systemctl restart sssd.service
 systemctl restart systemd-logind
 SH""",
         ]
 
         commands.extend(self._generate_slurm_jwks_config(context))
         commands.append(self._generate_slurm_config_resolve_command())
+        commands.append(self._initialize_slurm_database())
         commands.extend(self._start_slurm_services())
 
         # Agent configuration commands
@@ -249,6 +263,28 @@ done
 chown slurm:slurm /etc/slurm/slurm.conf /etc/slurm/slurmdbd.conf
 chmod 644 /etc/slurm/slurm.conf
 chmod 600 /etc/slurm/slurmdbd.conf
+SH"""
+
+    @staticmethod
+    def _initialize_slurm_database() -> str:
+        """Start MySQL/MariaDB and ensure Slurm accounting database objects exist."""
+        return """bash <<'SH'
+set -euo pipefail
+
+if systemctl cat mariadb.service >/dev/null 2>&1; then
+    database_service=mariadb.service
+else
+    database_service=mysql.service
+fi
+
+systemctl enable --now "$database_service"
+
+mysql <<'END_SQL'
+CREATE USER IF NOT EXISTS 'slurm'@'localhost' IDENTIFIED BY 'rats';
+CREATE DATABASE IF NOT EXISTS slurm DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON slurm.* TO 'slurm'@'localhost';
+FLUSH PRIVILEGES;
+END_SQL
 SH"""
 
     def _start_slurm_services(self) -> List[str]:

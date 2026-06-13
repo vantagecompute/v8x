@@ -31,9 +31,7 @@ def generate_sssd_conf(org_id: str, ldap_uri: str, sssd_binder_password: str) ->
     search_base = f"ou={org_id},ou=organizations,dc=vantagecompute,dc=ai"
     user_search_base = f"ou=People,{search_base}"
     bind_dn = f"cn=sssd-binder,ou=ServiceAccounts,{search_base}"
-    access_filter = (
-        f"(|(memberOf=cn=slurm-users,ou=Groups,{search_base})"
-    )
+    access_filter = f"(memberOf=cn=slurm-users,ou=Groups,{search_base})"
 
     filter_users = (
         "root,ubuntu,slurm,slurmrestd,daemon,bin,sys,sync,games,man,lp,mail,news,"
@@ -53,6 +51,7 @@ def generate_sssd_conf(org_id: str, ldap_uri: str, sssd_binder_password: str) ->
     return f"""\
 [sssd]
 config_file_version = 2
+services = nss, pam, ssh, sudo
 domains  = vantagecompute.ai
 
 [nss]
