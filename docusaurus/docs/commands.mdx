@@ -624,11 +624,11 @@ This document provides a comprehensive reference for all available CLI commands 
 
      Create a cluster with an app:
      $ v8x cluster create mycluster --cloud-account-id 16 --app
- vantage-system
+ slurm-lxd-localhost
 
      Create a cluster with an app and custom config:
      $ v8x cluster create mycluster --cloud-account-id 16 --app
- vantage-system --app-config 'jupyterhub_enabled=false'
+ slurm-lxd-localhost --app-config 'jupyterhub_enabled=false'
 
      Create a cluster with settings from a YAML file:
      $ v8x cluster create mycluster --cloud-account-id 16 --settings-file
@@ -640,7 +640,7 @@ This document provides a comprehensive reference for all available CLI commands 
 
      Resume app deployment on an existing cluster:
      $ v8x cluster create mycluster --cloud-account-id 16 --app
- vantage-system --resume
+ slurm-lxd-localhost --resume
 
      Create a Multipass Slurm cluster with resource/image overrides:
      $ v8x cluster create mycluster --cloud-account my-localhost --app
@@ -1042,8 +1042,10 @@ This document provides a comprehensive reference for all available CLI commands 
  form. They are advisory — callers merge values into their own request body.
 
  Examples:
-     v8x cluster preset create cpu-small my-cluster inference-cpu kserve-sklearn
-     v8x cluster preset create gpu-vllm my-cluster inference-gpu vllm \\
+     v8x cluster preset create cpu-small -c my-cluster -p inference-cpu
+ --runtime kserve-sklearn
+     v8x cluster preset create gpu-vllm -c my-cluster -p inference-gpu
+ --runtime vllm \\
          --cpu 4 --memory 16Gi --gpu-count 1 --max-replicas 3
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
@@ -1079,8 +1081,8 @@ This document provides a comprehensive reference for all available CLI commands 
  Delete an inference preset from a Vantage cluster.
 
  Examples:
- v8x cluster preset delete cpu-small my-cluster
- v8x cluster preset delete gpu-vllm my-cluster --force
+ v8x cluster preset delete cpu-small --cluster my-cluster
+ v8x cluster preset delete gpu-vllm -c my-cluster --force
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1108,7 +1110,7 @@ This document provides a comprehensive reference for all available CLI commands 
  Get details of a specific inference preset.
 
  Examples:
- v8x cluster preset get cpu-small my-cluster
+ v8x cluster preset get cpu-small --cluster my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1135,7 +1137,7 @@ This document provides a comprehensive reference for all available CLI commands 
  List all inference presets on a Vantage cluster.
 
  Examples:
- v8x cluster preset list my-cluster
+ v8x cluster preset list --cluster my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    cluster_name      TEXT  [required]                                      │
@@ -1189,8 +1191,8 @@ This document provides a comprehensive reference for all available CLI commands 
  Create a namespace on a Vantage cluster.
 
  Examples:
- v8x cluster namespace create my-namespace my-cluster
- v8x cluster namespace create my-namespace my-cluster --labels
+ v8x cluster namespace create my-namespace -c my-cluster
+ v8x cluster namespace create my-namespace -c my-cluster --labels
  '{"env":"dev"}'
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
@@ -1219,8 +1221,8 @@ This document provides a comprehensive reference for all available CLI commands 
  Delete a namespace from a Vantage cluster.
 
  Examples:
- v8x cluster namespace delete my-namespace my-cluster
- v8x cluster namespace delete my-namespace my-cluster --force
+ v8x cluster namespace delete my-namespace -c my-cluster
+ v8x cluster namespace delete my-namespace -c my-cluster --force
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1248,8 +1250,8 @@ This document provides a comprehensive reference for all available CLI commands 
  Get details of a specific namespace.
 
  Examples:
- v8x cluster namespace get vantage-kubeflow-james my-cluster
- v8x cluster namespace get vantage-kubeflow-james my-cluster --json
+ v8x cluster namespace get vantage-kubeflow-james -c my-cluster
+ v8x cluster namespace get vantage-kubeflow-james -c my-cluster --json
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1276,8 +1278,8 @@ This document provides a comprehensive reference for all available CLI commands 
  List namespaces on a Vantage cluster.
 
  Examples:
- v8x cluster namespace list my-cluster
- v8x cluster namespace list my-cluster --json
+ v8x cluster namespace list -c my-cluster
+ v8x cluster namespace list -c my-cluster --json
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    cluster_name      TEXT  [required]                                      │
@@ -1425,8 +1427,8 @@ This document provides a comprehensive reference for all available CLI commands 
  Delete a Multus network from a Vantage cluster.
 
  Examples:
- v8x cluster network delete data-net my-cluster
- v8x cluster network delete data-net my-cluster --force
+ v8x cluster network delete data-net -c my-cluster
+ v8x cluster network delete data-net -c my-cluster --force
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1454,8 +1456,8 @@ This document provides a comprehensive reference for all available CLI commands 
  Get details for a Multus network.
 
  Examples:
- v8x cluster network get data-net my-cluster
- v8x cluster network get data-net my-cluster --json
+ v8x cluster network get data-net -c my-cluster
+ v8x cluster network get data-net -c my-cluster --json
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1482,8 +1484,8 @@ This document provides a comprehensive reference for all available CLI commands 
  List Multus networks on a Vantage cluster.
 
  Examples:
- v8x cluster network list my-cluster
- v8x cluster network list my-cluster --json
+ v8x cluster network list -c my-cluster
+ v8x cluster network list -c my-cluster --json
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    cluster_name      TEXT  [required]                                      │
@@ -1509,10 +1511,10 @@ This document provides a comprehensive reference for all available CLI commands 
  Update a Multus network on a Vantage cluster.
 
  Examples:
- v8x cluster network update data-net my-cluster --mtu 9000
- v8x cluster network update data-net my-cluster --ip-range 10.20.0.0/24
+ v8x cluster network update data-net -c my-cluster --mtu 9000
+ v8x cluster network update data-net -c my-cluster --ip-range 10.20.0.0/24
  --gateway 10.20.0.1
- v8x cluster network update vlan10 my-cluster --ip-range 192.168.10.0/24
+ v8x cluster network update vlan10 -c my-cluster --ip-range 192.168.10.0/24
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1580,8 +1582,8 @@ This document provides a comprehensive reference for all available CLI commands 
  operation — use 'v8x cluster kubeflow get' to check status.
 
  Examples:
-     v8x cluster kubeflow create my-cluster
-     v8x cluster kubeflow create my-cluster --admin-node-group
+     v8x cluster kubeflow create --cluster my-cluster
+     v8x cluster kubeflow create --cluster my-cluster --admin-node-group
  kubeflow-admin
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
@@ -1609,7 +1611,7 @@ This document provides a comprehensive reference for all available CLI commands 
  Get the status of Kubeflow on a Vantage K8s cluster.
 
  Examples:
- v8x cluster kubeflow get my-cluster
+ v8x cluster kubeflow get --cluster my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    cluster_name      TEXT  [required]                                      │
@@ -1638,8 +1640,8 @@ This document provides a comprehensive reference for all available CLI commands 
  operation — use 'v8x cluster kubeflow get' to check status.
 
  Examples:
-    v8x cluster kubeflow delete my-cluster
-    v8x cluster kubeflow delete my-cluster --yes
+     v8x cluster kubeflow delete --cluster my-cluster
+     v8x cluster kubeflow delete -c my-cluster --yes
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    cluster_name      TEXT  [required]                                      │
@@ -1697,9 +1699,9 @@ This document provides a comprehensive reference for all available CLI commands 
  namespace.
 
  Examples:
- v8x cluster secret create hf-token my-cluster --type huggingface --value
+ v8x cluster secret create hf-token -c my-cluster --type huggingface --value
  hf_xxxxx
- v8x cluster secret create my-s3 my-cluster --type s3 \\
+ v8x cluster secret create my-s3 -c my-cluster --type s3 \\
      --access-key-id AKIA... --secret-access-key xxx --region us-east-1
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
@@ -1733,8 +1735,8 @@ This document provides a comprehensive reference for all available CLI commands 
  List secrets in your profile namespace.
 
  Examples:
- v8x cluster secret list my-cluster
- v8x cluster secret list my-cluster --type huggingface
+ v8x cluster secret list -c my-cluster
+ v8x cluster secret list -c my-cluster --type huggingface
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    cluster_name      TEXT  [required]                                      │
@@ -1761,7 +1763,7 @@ This document provides a comprehensive reference for all available CLI commands 
  Get details of a secret (value is never returned).
 
  Examples:
- v8x cluster secret get hf-token my-cluster
+ v8x cluster secret get hf-token -c my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1788,8 +1790,8 @@ This document provides a comprehensive reference for all available CLI commands 
  Delete a secret.
 
  Examples:
- v8x cluster secret delete hf-token my-cluster
- v8x cluster secret delete my-s3 my-cluster --force
+ v8x cluster secret delete hf-token -c my-cluster
+ v8x cluster secret delete my-s3 -c my-cluster --force
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1817,7 +1819,7 @@ This document provides a comprehensive reference for all available CLI commands 
  Test S3 secret connectivity (ListBuckets dry-run).
 
  Examples:
- v8x cluster secret test my-s3 my-cluster
+ v8x cluster secret test my-s3 -c my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -1880,13 +1882,13 @@ This document provides a comprehensive reference for all available CLI commands 
 
  Examples:
      # Enable JupyterHub on a cluster
-    v8x cluster service enable jupyterhub my-cluster
+     v8x cluster service enable jupyterhub --cluster my-cluster
 
      # Enable Slurm
-    v8x cluster service enable slurm my-cluster
+     v8x cluster service enable slurm -c my-cluster
 
      # Enable MLflow
-    v8x cluster service enable mlflow my-cluster
+     v8x cluster service enable mlflow --cluster my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    service           TEXT  [required]                                      │
@@ -1922,16 +1924,16 @@ This document provides a comprehensive reference for all available CLI commands 
 
  Examples:
      # Disable JupyterHub on a cluster
-    v8x cluster service disable jupyterhub my-cluster
+     v8x cluster service disable jupyterhub --cluster my-cluster
 
      # Disable Slurm
-    v8x cluster service disable slurm my-cluster
+     v8x cluster service disable slurm -c my-cluster
 
      # Disable MLflow
-    v8x cluster service disable mlflow my-cluster
+     v8x cluster service disable mlflow --cluster my-cluster
 
      # Force delete SLURM when it's broken
-    v8x cluster service disable slurm my-cluster --force
+     v8x cluster service disable slurm --cluster my-cluster --force
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    service           TEXT  [required]                                      │
@@ -1965,13 +1967,13 @@ This document provides a comprehensive reference for all available CLI commands 
 
  Examples:
      # Update JupyterHub configuration
-    v8x cluster service update jupyterhub my-cluster
+     v8x cluster service update jupyterhub --cluster my-cluster
 
      # Reconcile Slurm
-    v8x cluster service update slurm my-cluster
+     v8x cluster service update slurm -c my-cluster
 
      # Re-sync MLflow
-    v8x cluster service update mlflow my-cluster
+     v8x cluster service update mlflow --cluster my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    service           TEXT  [required]                                      │
@@ -2004,23 +2006,23 @@ This document provides a comprehensive reference for all available CLI commands 
 
  Examples:
      # Create a PVC viewer
-     v8x cluster service create pvc-viewer my-cluster
+     v8x cluster service create pvc-viewer --cluster my-cluster
 
      # Create a cloud shell
-     v8x cluster service create cloud-shell my-cluster
+     v8x cluster service create cloud-shell -c my-cluster
 
      # Create a remote desktop with specific resolution
-     v8x cluster service create remote-desktop my-cluster -r 2560x1440
+     v8x cluster service create remote-desktop -c my-cluster -r 2560x1440
 
      # Create a remote desktop on a GPU node
-     v8x cluster service create remote-desktop my-cluster -i gpu
+     v8x cluster service create remote-desktop -c my-cluster -i gpu
 
      # Create a remote desktop with a specific image version
-     v8x cluster service create remote-desktop my-cluster --image-version
+     v8x cluster service create remote-desktop -c my-cluster --image-version
  1.2.3
 
      # Create a cloud shell with a specific image version
-     v8x cluster service create cloud-shell my-cluster --image-version 0.9.0
+     v8x cluster service create cloud-shell -c my-cluster --image-version 0.9.0
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    service_type      TEXT  [required]                                      │
@@ -2057,10 +2059,10 @@ This document provides a comprehensive reference for all available CLI commands 
 
  Examples:
      # Delete a PVC viewer
-    v8x cluster service delete pvc-viewer abc12345-... my-cluster
+     v8x cluster service delete pvc-viewer abc12345-... --cluster my-cluster
 
      # Delete a cloud shell without confirmation
-    v8x cluster service delete cloud-shell def67890-... my-cluster --force
+     v8x cluster service delete cloud-shell def67890-... -c my-cluster --force
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    service_type      TEXT  [required]                                      │
@@ -2091,10 +2093,10 @@ This document provides a comprehensive reference for all available CLI commands 
 
  Examples:
  # Get details of a specific PVC viewer
- v8x cluster service get pvc-viewer abc12345-... my-cluster
+ v8x cluster service get pvc-viewer abc12345-... --cluster my-cluster
 
  # Get details of a cloud shell
- v8x cluster service get cloud-shell def67890-... my-cluster
+ v8x cluster service get cloud-shell def67890-... -c my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    service_type      TEXT  [required]                                      │
@@ -2127,16 +2129,16 @@ This document provides a comprehensive reference for all available CLI commands 
 
  Examples:
      # List your services
-    v8x cluster service list my-cluster
+     v8x cluster service list --cluster my-cluster
 
      # List only your cloud shells
-    v8x cluster service list my-cluster --service-type cloud-shell
+     v8x cluster service list -c my-cluster --type cloud-shell
 
      # List services for a specific user (admin)
-    v8x cluster service list my-cluster --username alice
+     v8x cluster service list -c my-cluster --username alice
 
      # List all users' services (admin)
-    v8x cluster service list my-cluster --all-users
+     v8x cluster service list -c my-cluster --all
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    cluster_name      TEXT  [required]                                      │
@@ -2202,7 +2204,9 @@ This document provides a comprehensive reference for all available CLI commands 
  This is a background operation — use 'v8x cluster slurm get' to check status.
 
  Examples:
-     v8x cluster slurm create hpc-prod my-cluster slurm-admin cpu:slurm-compute:default \\
+     v8x cluster slurm create hpc-prod -c my-cluster \\
+         --control-node-group slurm-admin \\
+         --partition cpu:slurm-compute:default \\
          --exposed --profiling \\
          --slurmctld-lb-ip 192.168.8.221 \\
          --slurmdbd-lb-ip 192.168.8.220 \\
@@ -2249,8 +2253,8 @@ This document provides a comprehensive reference for all available CLI commands 
  This is a background operation — the namespace will be removed asynchronously.
 
  Examples:
-    v8x cluster slurm delete hpc-prod my-cluster
-    v8x cluster slurm delete ml-dev my-cluster --yes
+     v8x cluster slurm delete hpc-prod --cluster my-cluster
+     v8x cluster slurm delete ml-dev -c my-cluster --yes
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -2278,8 +2282,8 @@ This document provides a comprehensive reference for all available CLI commands 
  Get the status of a specific Slurm cluster.
 
  Examples:
- v8x cluster slurm get hpc-prod my-cluster
- v8x cluster slurm get ml-dev my-cluster
+ v8x cluster slurm get hpc-prod --cluster my-cluster
+ v8x cluster slurm get ml-dev -c my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
@@ -2306,7 +2310,8 @@ This document provides a comprehensive reference for all available CLI commands 
  List all Slurm clusters deployed within a Vantage K8s cluster.
 
  Examples:
- v8x cluster slurm list my-cluster
+ v8x cluster slurm list --cluster my-cluster
+ v8x cluster slurm list -c my-cluster
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    cluster_name      TEXT  [required]                                      │
@@ -2336,9 +2341,9 @@ This document provides a comprehensive reference for all available CLI commands 
  asynchronously.
 
  Examples:
-    v8x cluster slurm update hpc-prod my-cluster --profiling
-    v8x cluster slurm update ml-dev my-cluster --no-bridge
-    v8x cluster slurm update research my-cluster --exposed --no-tls
+     v8x cluster slurm update hpc-prod --cluster my-cluster --profiling
+     v8x cluster slurm update ml-dev -c my-cluster --no-bridge
+     v8x cluster slurm update research -c my-cluster --exposed --no-tls
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name              TEXT  [required]                                      │
