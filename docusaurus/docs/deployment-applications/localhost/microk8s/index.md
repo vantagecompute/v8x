@@ -1,391 +1,71 @@
 ---
-title: Slurm on MicroK8S 
-description: Deploy slurm on MicroK8s Kubernetes cluster for localhost development
+title: MicroK8s Local Cloud Account
+description: Register and use a local MicroK8s substrate with v8x
 ---
 
-Deploy a production-like slurm cluster in K8S on localhost using MicroK8S, a lightweight Kubernetes distribution perfect for development and testing.
-
-## Overview
-
-MicroK8s provides a complete Kubernetes experience that can be deployed locally with:
-
-- **MicroK8s**: Lightweight Kubernetes distribution
-- **Helm**: Package manager for Kubernetes applications
-- **SLURM**: HPC workload management on Kubernetes
-- **JupyterHub**: Multi-user Jupyter notebook environment
-- **Keycloak**: Identity and access management
-- **v8x**: Streamlined deployment and management
+MicroK8s provides a local Kubernetes substrate. The current `v8x` CLI supports `microk8s` as a cloud account provider, but no built-in MicroK8s deployment application is listed by `v8x app list` in this version.
 
 ## Prerequisites
 
-Before proceeding, ensure you have completed the MicroK8s prerequisites from the localhost deployment applications overview.
-
-### Required Components
-
-- MicroK8s (1.29/stable)
-- Enabled addons: hostpath-storage, dns, metallb
-- v8x
-- kubectl access configured
-
-## Available Applications
-
-### SLURM MicroK8s Localhost
-
-Deploy a SLURM cluster on MicroK8s using Helm charts.
-
 ```bash
-v8x app deploy slurm-microk8s-localhost
+sudo snap install microk8s --channel 1.29/stable --classic
+sudo microk8s.enable hostpath-storage
+sudo microk8s.enable dns
+sudo microk8s.enable metallb:10.64.140.43-10.64.140.49
+sudo usermod -a -G microk8s "$USER"
+sudo chown -f -R "$USER" ~/.kube
+newgrp microk8s
 ```
 
-**Features:**
-
-- Containerized SLURM cluster on Kubernetes
-- Horizontal pod autoscaling
-- Persistent volume storage
-- Service mesh integration
-- Cloud-native monitoring
-
-### JupyterHub MicroK8s Localhost
-
-Deploy a multi-user JupyterHub environment for data science and development.
+Verify access:
 
 ```bash
-v8x app deploy jupyterhub-microk8s-localhost
-```
-
-**Features:**
-
-- Multi-user Jupyter notebook environment
-- GPU support (if available)
-- Custom Docker images
-- Persistent user storage
-- OAuth integration
-
-### Keycloak MicroK8s Localhost
-
-Deploy Keycloak for identity and access management.
-
-```bash
-v8x app deploy keycloak-microk8s-localhost
-```
-
-**Features:**
-
-- Single Sign-On (SSO)
-- User federation
-- Identity brokering
-- Multi-factor authentication
-- LDAP/Active Directory integration
-
-### Full MicroK8s Localhost
-
-Deploy the complete Vantage platform stack on MicroK8s.
-
-```bash
-v8x app deploy full-microk8s-localhost
-```
-
-**Components:**
-
-- SLURM cluster with job scheduling
-- JupyterHub for interactive computing
-- Keycloak for authentication
-- Monitoring and logging stack
-- Service mesh for communication
-
-## Quick Start
-
-### 1. Verify MicroK8s Installation
-
-```bash
-# Check MicroK8s status
 microk8s status
-
-# Verify kubectl access
 microk8s kubectl get nodes
-
-# Check enabled addons
-microk8s status --addon
 ```
 
-### 2. Deploy Your First Application
+## Register the Cloud Account
 
 ```bash
-# Deploy SLURM cluster
-v8x app deploy slurm-microk8s-localhost
-
-# Monitor deployment
-v8x app status slurm-microk8s-localhost
-
-# Watch pods come online
-microk8s kubectl get pods -w
+v8x cloud account create local-microk8s --provider microk8s
+v8x cloud account list --provider microk8s
 ```
 
-### 3. Access Applications
+## Create or Inspect Clusters
+
+Use the account name or ID with cluster commands:
 
 ```bash
-# Get service endpoints
-v8x app info slurm-microk8s-localhost
-
-# Port forward to access locally
-microk8s kubectl port-forward svc/slurm-controller 8080:80
+v8x cluster create microk8s-dev --cloud-account local-microk8s --cluster-type k8s
+v8x cluster get microk8s-dev
 ```
 
-## Configuration
-
-### Resource Management
+If your installed version adds MicroK8s deployment applications, they will appear in:
 
 ```bash
-# Configure resource limits
-v8x app deploy slurm-microk8s-localhost \
-  --set resources.limits.memory=4Gi \
-  --set resources.limits.cpu=2
-
-# Enable autoscaling
-v8x app config slurm-microk8s-localhost \
-  --autoscaling-enabled=true \
-  --min-replicas=1 \
-  --max-replicas=5
-```
-
-### Storage Configuration
-
-```bash
-# Configure persistent storage
-v8x app config slurm-microk8s-localhost \
-  --storage-class=hostpath \
-  --storage-size=10Gi
-
-# Enable shared storage
-microk8s enable hostpath-storage
-```
-
-### Networking
-
-```bash
-# Configure LoadBalancer services
-v8x app config slurm-microk8s-localhost \
-  --service-type=LoadBalancer \
-  --load-balancer-ip=10.64.140.43
-
-# Enable ingress
-microk8s enable ingress
-v8x app config slurm-microk8s-localhost \
-  --ingress-enabled=true \
-  --ingress-host=slurm.localhost
-```
-
-## Management Commands
-
-### Application Lifecycle
-
-```bash
-# List deployed applications
 v8x app list
-
-# Start application
-v8x app start slurm-microk8s-localhost
-
-# Stop application
-v8x app stop slurm-microk8s-localhost
-
-# Update application
-v8x app update slurm-microk8s-localhost
-
-# Delete application
-v8x app delete slurm-microk8s-localhost
 ```
 
-### Scaling Operations
+Then pass the app name with `--app <app-name>` during `v8x cluster create`.
+
+## Kubernetes Operations
+
+Use MicroK8s directly for Kubernetes-level inspection:
 
 ```bash
-# Scale compute nodes
-v8x app scale slurm-microk8s-localhost --compute-nodes=3
-
-# Scale JupyterHub user capacity
-v8x app scale jupyterhub-microk8s-localhost --max-users=50
-```
-
-### Monitoring and Logs
-
-```bash
-# View application logs
-v8x app logs slurm-microk8s-localhost
-
-# Follow logs in real-time
-v8x app logs slurm-microk8s-localhost --follow
-
-# Get detailed status
-v8x app describe slurm-microk8s-localhost
-```
-
-## Kubernetes Integration
-
-### Direct kubectl Commands
-
-```bash
-# View all resources
-microk8s kubectl get all -n vantage
-
-# Describe pods
-microk8s kubectl describe pod -l app=slurm-controller
-
-# Execute commands in pods
-microk8s kubectl exec -it slurm-controller-0 -- /bin/bash
-
-# View persistent volumes
-microk8s kubectl get pv,pvc
-```
-
-### Helm Integration
-
-```bash
-# List Helm releases
-microk8s helm list
-
-# Get Helm values
-microk8s helm get values slurm-microk8s-localhost
-
-# Upgrade with new values
-microk8s helm upgrade slurm-microk8s-localhost ./chart --values custom-values.yaml
+microk8s kubectl get all --all-namespaces
+microk8s kubectl get pv,pvc --all-namespaces
+microk8s kubectl describe pod <pod-name> -n <namespace>
+microk8s kubectl logs <pod-name> -n <namespace>
 ```
 
 ## Troubleshooting
 
-### Common Issues
-
-**Pod Startup Issues:**
-
 ```bash
-# Check pod status
-microk8s kubectl get pods -o wide
-
-# Describe problematic pods
-microk8s kubectl describe pod <pod-name>
-
-# View pod logs
-microk8s kubectl logs <pod-name> --previous
+microk8s status
+microk8s inspect
+microk8s kubectl get nodes -o wide
+v8x cluster create microk8s-dev --cloud-account local-microk8s --cluster-type k8s -v
 ```
 
-**Storage Issues:**
-
-```bash
-# Check PVC status
-microk8s kubectl get pvc
-
-# Describe storage issues
-microk8s kubectl describe pvc <pvc-name>
-
-# Check available storage
-df -h /var/snap/microk8s/common/default-storage
-```
-
-**Network Issues:**
-
-```bash
-# Check service endpoints
-microk8s kubectl get endpoints
-
-# Test service connectivity
-microk8s kubectl run test-pod --image=busybox --rm -it -- nslookup kubernetes.default
-
-# Check MetalLB configuration
-microk8s kubectl get configmap config -n metallb-system -o yaml
-```
-
-### Performance Optimization
-
-**Resource Allocation:**
-
-```bash
-# Monitor resource usage
-microk8s kubectl top nodes
-microk8s kubectl top pods
-
-# Set resource requests and limits
-v8x app config slurm-microk8s-localhost \
-  --cpu-request=500m \
-  --memory-request=1Gi \
-  --cpu-limit=2 \
-  --memory-limit=4Gi
-```
-
-**Node Optimization:**
-```bash
-# Enable GPU support (if available)
-microk8s enable gpu
-
-# Configure node affinity
-v8x app config slurm-microk8s-localhost \
-  --node-selector=kubernetes.io/arch=amd64
-```
-
-## Advanced Topics
-
-### Custom Images
-
-```bash
-# Build custom SLURM image
-docker build -t my-slurm:latest .
-
-# Deploy with custom image
-v8x app deploy slurm-microk8s-localhost \
-  --set image.repository=my-slurm \
-  --set image.tag=latest
-```
-
-### Service Mesh Integration
-
-```bash
-# Enable Istio service mesh
-microk8s enable istio
-
-# Deploy with service mesh
-v8x app deploy slurm-microk8s-localhost --enable-service-mesh
-```
-
-### Monitoring Stack
-
-```bash
-# Enable Prometheus monitoring
-microk8s enable prometheus
-
-# Access Grafana dashboard
-microk8s kubectl port-forward -n monitoring svc/grafana 3000:3000
-```
-
-## Integration Examples
-
-### JupyterHub + SLURM
-
-```bash
-# Deploy integrated stack
-v8x app deploy full-microk8s-localhost
-
-# Configure JupyterHub to submit to SLURM
-v8x app config jupyterhub-microk8s-localhost \
-  --slurm-controller=slurm-controller.vantage.svc.cluster.local
-```
-
-### Keycloak Authentication
-
-```bash
-# Configure SSO for applications
-v8x app config slurm-microk8s-localhost \
-  --auth-provider=keycloak \
-  --keycloak-url=http://keycloak.localhost
-```
-
-## Next Steps
-
-- [Submit Jobs via Kubernetes](../../../usage.md#7-job-management-workflow)
-- [Private Vantage Installation](../../../private-vantage-installation.md)
-- [Monitoring Setup](../../../usage.md#7-job-management-workflow)
-
-## Support
-
-For MicroK8s-specific issues:
-
-- [Troubleshooting Guide](../../../troubleshooting.md)
-- [Contact Support](../../../contact.md)
-- [Community Support](../../../contact.md)
+Common issues are missing MicroK8s group membership, disabled storage or DNS addons, and MetalLB address ranges that conflict with your local network.

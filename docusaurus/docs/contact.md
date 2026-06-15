@@ -63,7 +63,7 @@ python3 --version          # Python version
 
 # v8x information
 v8x --help
-vantage --version
+v8x version
 ```
 
 ## Bug Reports

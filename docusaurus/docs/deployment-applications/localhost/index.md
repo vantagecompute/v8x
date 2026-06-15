@@ -1,94 +1,68 @@
 ---
 title: Localhost Deployment Applications
-description: Deployment Applications for Localhost Sandbox
+description: Deployment applications for localhost sandboxes
 ---
 
-Welcome to the Localhost Deployment Applications Documentation!
+Localhost deployment applications let you exercise Vantage workflows on a laptop or development machine. The current CLI still models these targets as cloud accounts, so create a cloud account first and then pass it to `v8x cluster create`.
 
-We provide a suite of production-like applications configured to work on a
-laptop or dev machine to help users get started using Vantage without needing
-a cloud account or credit card!
+## Multipass
 
-After completing the prereqs for your desired use case below, you will be ready to use the v8x
-to stand up localhost based compute infrastructure compatible with the Vantage platform.
-
-## Localhost Provider Prereqs
-
-To use the localhost deployment applications you will need to install the prereqs, depending on your use case.
-
-### MicroK8S
-
-We use [`microk8s`](https://canonical.com/microk8s) for a k8s sandbox on localhost.
-
-To use the localhost deployment applications on `microk8s`, install `microk8s` first.
-
-#### Install MicroK8S
+Use [Multipass](https://canonical.com/multipass) to launch a single-node Slurm virtual machine.
 
 ```bash
-sudo snap install microk8s --channel 1.29/stable --classic
-```
-
-#### Configure MicroK8S
-
-```bash
-sudo microk8s.enable hostpath-storage
-sudo microk8s.enable dns
-sudo microk8s.enable metallb:10.64.140.43-10.64.140.49
-
-sudo usermod -a -G microk8s $USER
-sudo chown -f -R $USER ~/.kube
-
-newgrp microk8s
-```
-
-MicroK8S is now configured to work with the Vantage platform!
-Proceed to <a href="/v8x/deployment-applications/localhost/microk8s">MicroK8S Deployment Applications</a> to start deploying!
-
-### Multipass
-
-Use [`multipass`](https://canonical.com/multipass) to launch a singlenode virtual-machine slurm cluster with the v8x.
-
-To use the `multipass` localhost Deployment Applications, install `multipass` first.
-
-#### Install Multipass
-
-```bsh
 sudo snap install multipass
+multipass version
+v8x cloud account create local-multipass --provider on_prem
+v8x cluster create slurm-dev \
+  --cloud-account local-multipass \
+  --app slurm-multipass \
+  --options operating_system=rockylinux9,cpu=4,mem=8,disk=128G
 ```
 
-#### Verify Multipass Installation
+Supported operating systems for `slurm-multipass` are `rockylinux9`, `rockylinux10`, `noble`, and `resolute`.
+
+Continue to the [Multipass guide](./localhost/multipass).
+
+## LXD and Juju
+
+Use [LXD](https://canonical.com/lxd) and [Juju](https://canonical.com/juju) for LXD-backed Vantage System and Juju extension workflows.
 
 ```bash
-multipass --version
-```
-
-Multipass is now installed. Proceed to the <a href="/v8x/deployment-applications/localhost/multipass">Multipass Singlenode Deployment Application Documentation</a>.
-
-### Charmed HPC
-
-The v8x provides [charmed-hpc](https://github.com/charmed-hpc), currated to run in containers and vms on
-your labtop or local machine.
-
-#### Install [`lxd`](https://canonical.com/lxd) and [`juju`](https://canonical.com/juju)
-
-```bsh
-sudo snap install juju --channel 3.6/stable
 sudo snap install lxd --channel latest/stable
-```
-
-#### Initalize LXD
-
-```bash
+sudo snap install juju --channel 3.6/stable
 sudo lxd init --auto
-sudo adduser $USER lxd
+sudo adduser "$USER" lxd
 lxc network set lxdbr0 ipv6.nat false
-```
-
-#### Bootstrap Juju
-
-```bash
 juju bootstrap localhost
 ```
 
-At this point you have bootstrapped a localhost juju controller on a lxd container and are ready to deploy!
-Proceed to the <a href="/v8x/deployment-applications/localhost/charmed-hpc">Charmed-HPC Deployment Application Documentation</a>.
+Create an LXD cloud account with the server URL and trust token:
+
+```bash
+v8x cloud account create local-lxd --provider lxd \
+  --attributes '{"lxd_server_url":"https://127.0.0.1:8443","lxd_token":"<token>"}'
+```
+
+Continue to the [LXD and Juju guide](./localhost/charmed-hpc).
+
+## MicroK8s
+
+Use [MicroK8s](https://canonical.com/microk8s) when you want a local Kubernetes substrate.
+
+```bash
+sudo snap install microk8s --channel 1.29/stable --classic
+sudo microk8s.enable hostpath-storage
+sudo microk8s.enable dns
+sudo microk8s.enable metallb:10.64.140.43-10.64.140.49
+sudo usermod -a -G microk8s "$USER"
+sudo chown -f -R "$USER" ~/.kube
+newgrp microk8s
+```
+
+Register it as a cloud account:
+
+```bash
+v8x cloud account create local-microk8s --provider microk8s
+```
+
+Continue to the [MicroK8s guide](./localhost/microk8s).

@@ -1,54 +1,35 @@
 ---
 title: Deployment Applications
-description: Deployment Application Example Usage
+description: Deployment application usage
 ---
 
-The v8x comes pre-baked with automation for deploying SLURM and other
-currated applications from our bespoke library on your laptop, public cloud, and Vantage Partner Clouds.
+Deployment applications are bundled automation modules that `v8x cluster create` can run after creating or resolving a cluster. They are selected with the `--app` option.
 
-In Vantage, these are referred to as, "Deployment Applications".
+List the deployment applications available in your installed CLI:
 
-We have categorized the "Deployment Applications" under their respective substrates.
+```bash
+v8x app list
+```
 
-:: Note
+The current built-in local applications are:
 
-We reccomend starting with the localhost provider to get the hang of things, then move on to a public cloud, on-premises, or Vantage Partner Cloud.
+| App | Cloud | Substrate | Purpose |
+|---|---|---|---|
+| `slurm-multipass` | `on_prem` | `multipass` | Create a single-node Slurm cluster in Multipass |
+| `vantage-system` | `lxd` | `lxd` | Provision Vantage System on an LXD-backed cluster |
+| `juju-ext` | `lxd` | `juju` | Extend an LXD cluster with Juju-managed compute nodes |
 
-::
+The common flow is:
 
-<div className="card__body text--center">Choose a Compute Provider.</div> 
-<div className="row">
-  <div className="col col--6 margin-bottom--lg">
-    <div className="card">
-      <div className="card__header text--center">
-        <h3>Localhost</h3>
-      </div>
-      <div className="card__body text--center">
-        <p>Our curated library of localhost sandbox environments.</p>
-        <a href="/v8x/deployment-applications/localhost" className="button button--primary">Learn More</a>
-      </div>
-    </div>
-  </div>
-  <div className="col col--6 margin-bottom--lg">
-    <div className="card">
-      <div className="card__header text--center">
-        <h3>AWS</h3>
-      </div>
-      <div className="card__body text--center">
-        <p> AWS Deployment Applications.</p>
-        <p><em>Coming Soon</em></p>
-      </div>
-    </div>
-  </div>
-  <div className="col col--6 margin-bottom--lg">
-    <div className="card">
-      <div className="card__header text--center">
-        <h3>Kubernetes</h3>
-      </div>
-      <div className="card__body text--center">
-        <p>Vantage Deployment Applications for K8S.</p>
-        <p><em>Coming Soon</em></p>
-      </div>
-    </div>
-  </div>
-</div>
+```bash
+v8x cloud account create <account-name> --provider <provider> [--attributes '<json>']
+v8x cluster create <cluster-name> --cloud-account <account-name> --app <app-name>
+v8x app deployment list
+```
+
+Choose a substrate-specific guide to continue:
+
+- [Localhost Deployment Applications](./deployment-applications/localhost)
+- [Multipass Single-node Slurm](./deployment-applications/localhost/multipass)
+- [LXD and Juju](./deployment-applications/localhost/charmed-hpc)
+- [MicroK8s Local Cloud Accounts](./deployment-applications/localhost/microk8s)

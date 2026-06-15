@@ -1,58 +1,25 @@
 ---
 title: Notebooks
-description: Notebooks Lifecycle in v8x
+description: Notebook workflow status in v8x
 ---
 
-## Notebook Server Overview
+## Notebook Commands
 
-The v8x supports Notebook Server lifecycle management subcommand `notebook` supports CRUD operations; create, delete, get, update, list.
+The current `v8x` CLI does not expose a top-level `notebook` command. Older examples that used `vantage notebook ...` are no longer valid for this CLI.
 
-### Create a Notebook
-
-```bash
-vantage notebook create mynote00 --cluster multipass-00 --partition compute
-```
-
-### List Notebooks
+Use the Vantage web interface for notebook server lifecycle operations, or use the current CLI primitives around clusters, storage, and jobs:
 
 ```bash
-vantage notebooks
+# Find the target cluster
+v8x cluster list
 
-                                             Notebook Servers                                              
-┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
-┃ Name        ┃ Cluster        ┃ Partition ┃ Owner           ┃ Server URL     ┃ SLURM Job ID ┃ Created    ┃
-┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
-│ mynote00    │ multipass-00   │ compute   │ james@vantagec… │ https://multi..│ 1            │ 2025-09-15 │
-│ nvidia-t4   │ aws-us-east-1  │ slurmd    │ james@vantagec… │ https://aws-u..│ 1            │ 2025-09-15 │
-└─────────────┴────────────────┴───────────┴─────────────────┴────────────────┴──────────────┴────────────┘
-                                               Items: 2 of 2                                               
+# Create or list storage that a notebook workload can mount
+v8x storage create notebook-home <cluster-name> --namespace <namespace> --size 100Gi
+v8x storage list <cluster-name> --namespace <namespace>
+
+# Track batch jobs associated with notebook-adjacent workflows
+v8x job submission list
+v8x job submission get <submission-id>
 ```
 
-### Get a Notebook
-
-```bash
-vantage notebook get mynote00
-
-╭───────────────────────────────── Notebook Server: mynote00 ──────────────────────────────────╮
-│ Name: mynote00                                                                               │
-│ ID: 361                                                                                      │
-│ Cluster: multipass-00                                                                        │
-│ Partition: compute                                                                           │
-│ Owner: james@vantagecompute.ai                                                               │
-│ Server URL: https://multipass-00-0d317c8b-1cfe-423e-a518-57f97fd50c6e.vantagecompute.ai      │
-│ SLURM Job ID: 1                                                                              │
-│ Created: 2025-09-15T03:48:28.179244+00:00                                                    │
-│ Updated: 2025-09-15T03:48:28.179244+00:00                                                    │
-╰──────────────────────────────────────────────────────────────────────────────────────────────╯
-```
-
-### Delete a Notebook
-
-```bash
-vantage notebook delete mynote00
-
-Are you sure you want to delete notebook server 'mynote00'? [y/N]: y
-✓ Notebook Server has been deleted.
-```
-
-### Update a Notebook
+If notebook-specific commands are reintroduced, this page should be updated from the live `v8x --help` output.
