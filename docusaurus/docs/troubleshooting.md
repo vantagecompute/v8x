@@ -24,7 +24,7 @@ v8x login   # re-authenticate if still failing
 
 ```bash
 v8x profile list
-v8x profile create --name dev --set-active
+v8x profile create dev --activate
 ```
 
 ## JSON Output / Parsing Errors
@@ -32,7 +32,7 @@ v8x profile create --name dev --set-active
 Ensure you used `--json` before piping to `jq`:
 
 ```bash
-v8x clusters list --json | jq '.clusters | length'
+v8x cluster list --json | jq '.clusters | length'
 ```
 
 ## Network / API Errors

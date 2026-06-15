@@ -1,73 +1,80 @@
 ---
 title: "v8x - The Vantage Compute CLI"
-description: "Authenticate, manage profiles & clusters, deploy apps, and run GraphQL queries against Vantage Compute"
+description: "Authenticate, manage profiles, register cloud accounts, create clusters, and deploy local Vantage applications"
 slug: /
 ---
 
 ## The unified command-line interface for Vantage Compute
 
-v8x is a modern async Python tool that unifies authentication, profile management, cluster operations and GraphQL querying against the Vantage Compute platform.
-
+`v8x` is the command-line interface for authenticating with Vantage Compute, managing profiles, registering cloud accounts, creating clusters, and launching supported deployment applications.
 
 ### Quick Start
 
-Install from pypi:
+Install from PyPI with `uv`:
 
 ```bash
-uv venv
-source .venv/bin/activate
-
-uv pip install v8x
+uv tool install v8x
+v8x --help
 ```
 
-Or from source:
+Or run from source:
 
-```shell-session
+```bash
 git clone https://github.com/vantagecompute/v8x
 cd v8x
 uv sync
 uv run v8x --help
 ```
 
-#### Authenticate
-
-Authenticate against the Vantage platform using the `login` command.
+### Authenticate
 
 ```bash
 v8x login
+v8x whoami
 ```
 
-#### Create a Multipass Singlenode Cluster
+### Register a Local Cloud Account
+
+Local deployment applications use cloud accounts too. A Multipass single-node Slurm deployment uses the `on_prem` provider:
+
+```bash
+v8x cloud account create local-multipass --provider on_prem
+v8x cloud account list
+```
+
+### Create a Multipass Single-Node Slurm Cluster
 
 ```bash
 v8x cluster create my-slurm-multipass-cluster \
-    --cloud localhost \
-    --app slurm-multipass
+  --cloud-account local-multipass \
+  --app slurm-multipass \
+  --options operating_system=rockylinux9,cpu=4,mem=8,disk=128G
 ```
 
-#### Create a Slurm Cluster in LXD Containers using Juju
+Supported Multipass operating system choices are `rockylinux9`, `rockylinux10`, `noble`, and `resolute`.
+
+### Create an LXD Cloud Account
+
+LXD deployments require a cloud account with the LXD server URL and trust token:
 
 ```bash
-v8x cluster create my-slurm-lxd-cluster \
-    --cloud localhost \
-    --app slurm-juju-localhost
+v8x cloud account create local-lxd --provider lxd \
+  --attributes '{"lxd_server_url":"https://127.0.0.1:8443","lxd_token":"<token>"}'
 ```
 
-#### Create a Slurm Cluster on MicroK8S
+The current built-in LXD deployment applications are visible with:
 
 ```bash
-v8x cluster create my-slurm-microk8s-cluster \
-    --cloud localhost \
-    --app slurm-microk8s-localhost
+v8x app list
 ```
 
 ### Next Steps
 
-- [Installation Guide](./installation) – Install & Configure
-- [Commands Reference](./commands) – Complete Command Reference
-- [Private Installation Configuration](./private-vantage-installation) – Partner Vantage Deployment CLI Profile Configuration
-- [Notebooks](./notebooks) – Jupyterhub Notebook Server Lifecycle
-- [Deployment Applications](./deployment-applications) – Slurm Deployment Automation
-- [Usage Examples](./usage) – Practical Command Patterns
-- [Architecture](./architecture) – Internals & Module Layout
-- [Troubleshooting](./troubleshooting) – Common Issues and Solutions
+- [Installation Guide](./installation) - Install and verify `v8x`
+- [Commands Reference](./commands) - Complete command reference
+- [Private Installation Configuration](./private-vantage-installation) - Partner Vantage profile configuration
+- [Deployment Applications](./deployment-applications) - Local deployment workflows
+- [Storage Commands](./storage-import-expose) - PVCs, storage imports, and exposes
+- [Usage Examples](./usage) - Practical command patterns
+- [Architecture](./architecture) - Internals and module layout
+- [Troubleshooting](./troubleshooting) - Common issues and solutions

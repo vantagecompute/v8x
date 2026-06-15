@@ -3,107 +3,141 @@ title: Usage Examples
 description: Practical examples of using v8x
 ---
 
-## 1. Install the v8x
-
-Install `v8x` with `uv`:
+## 1. Install v8x
 
 ```bash
-uv venv
-source .venv/bin/activate
-
-uv pip install v8x
+uv tool install v8x
+v8x version
 ```
 
-## 2. Vantage Login
+When working from a source checkout, use `uv run`:
+
+```bash
+uv sync
+uv run v8x --help
+```
+
+## 2. Authenticate
 
 ```bash
 v8x login
+v8x whoami
+v8x token --decode
 ```
 
-## 3. Cluster Management Commands
+Add `--json` when you need automation-friendly output:
 
 ```bash
-# List clusters (using alias)
-v8x clusters
+v8x whoami --json | jq '.identity.email'
+```
+
+## 3. Cloud Accounts
+
+Cloud accounts are the current deployment target abstraction. Create them with `v8x cloud account create`, then pass the account name or ID to `v8x cluster create`.
+
+```bash
+# Local Multipass / on-prem-style account
+v8x cloud account create local-multipass --provider on_prem
+
+# LXD account with provider attributes
+v8x cloud account create local-lxd --provider lxd \
+  --attributes '{"lxd_server_url":"https://127.0.0.1:8443","lxd_token":"<token>"}'
+
+# AWS account
+v8x cloud account create aws-prod --provider aws \
+  --attributes '{"role_arn":"arn:aws:iam::123456789012:role/VantageRole","region":"us-east-1"}'
+
+# GCP account
+v8x cloud account create gcp-dev --provider gcp \
+  --attributes '{"project_id":"my-project","region":"us-central1"}'
+
+# List registered accounts
+v8x cloud account list --json | jq '.[] | {name, provider}'
+```
+
+Valid provider values are `aws`, `gcp`, `azure`, `on_prem`, `lxd`, and `microk8s`.
+
+## 4. Cluster Management
+
+```bash
+# List clusters
+v8x cluster list
 v8x clusters --json | jq '.clusters | length'
 
-# Create new cluster using juju
-v8x cluster create compute-juju-00 --cloud localhost --app slurm-juju-localhost
+# Create a regular cluster from a cloud account name
+v8x cluster create prod-hpc --cloud-account aws-prod
 
-# Create new local vm singlenode cluster using multipass
-v8x cluster create compute-multipass-00 --cloud localhost --app slurm-multipass
+# Create a cluster from a cloud account ID
+v8x cluster create prod-hpc-2 --cloud-account-id 16
 
-# Create new local vm singlenode cluster using microk8s
-v8x cluster create compute-microk8s-00 --cloud localhost --app slurm-microk8s-localhost
+# Create a local Multipass Slurm cluster
+v8x cluster create compute-multipass-00 \
+  --cloud-account local-multipass \
+  --app slurm-multipass \
+  --options operating_system=rockylinux9,cpu=4,mem=8,disk=128G
 
-# Get specific cluster
-v8x cluster get compute-juju-00 --json | jq '.cluster | {name,id,status}'
+# Supported Multipass operating systems
+# rockylinux9, rockylinux10, noble, resolute
+
+# Get specific cluster details
+v8x cluster get compute-multipass-00 --json | jq '.cluster | {name,id,status}'
 ```
 
-## 4. Vantage Applications (apps)
+## 5. Deployment Applications
 
 ```bash
-# List available applications
-v8x apps
+# List bundled deployment applications
+v8x app list
+
+# Inspect recorded local deployments
+v8x app deployment list
+v8x app deployment get <deployment-id>
+
+# Delete a recorded deployment and clean up associated local resources
+v8x app deployment delete <deployment-id> --force
 ```
 
-## 5. Cloud Provider Management
-
-```bash
-# Add cloud providers
-v8x cloud add aws-prod --provider aws
-v8x cloud add gcp-dev --provider gcp
-v8x cloud add compute-a-on-site-us-east --provider on-premises
-
-
-# List configurations
-v8x clouds --json | jq '.clouds[] | {name, provider, status}'
-
-{
-  "name": "aws-prod",
-  "provider": "aws",
-  "status": "active"
-}
-{
-  "name": "gcp-dev",
-  "provider": "gcp",
-  "status": "active"
-}
-```
+Current built-in local applications include `slurm-multipass` for `on_prem` and `vantage-system` / `juju-ext` for `lxd`.
 
 ## 6. Network and Storage
 
 ```bash
-# Create a storage volume
-v8x storage create data-vol --size 100GB
+# Create a PersistentVolumeClaim in a cluster namespace
+v8x storage create data-vol prod-hpc --namespace alice --size 100Gi
 
-# Create network
+# List PVCs
+v8x storage list prod-hpc --namespace alice --json | jq '.items[] | {name, status}'
+
+# Create a network
 v8x network create cluster-net --cidr 10.0.0.0/16
 
-# List resources
-v8x storage list --json | jq '.volumes[] | {name, size, status}'
-v8x networks --json | jq '.networks[] | {name, cidr}'
+# List networks
+v8x network list --json | jq '.networks[] | {name, cidr}'
 ```
 
 ## 7. Job Management Workflow
 
 ```bash
-# Create job script
-v8x job script create analysis --file ./my_script.py
+# Create a reusable script record
+v8x job script create analysis --script-type bash --description "Run analysis workflow"
 
-# Create job template for reuse
-v8x job template create gpu-analysis \
-  --memory 16GB --gpus 2 --queue gpu
+# Create a template record
+v8x job template create --name gpu-analysis --description "GPU analysis template"
 
-# Submit job
-v8x job submission create myjobsubmission \
-  --script script-123 \
-  --template template-456 \
-  --priority high
+# Submit a job with SBATCH arguments
+v8x job submission create \
+  --name myjobsubmission \
+  --job-script-id 123 \
+  --client-id compute-multipass-00 \
+  --execution-directory /home/ubuntu/jobs \
+  --sbatch-arg "--partition=compute" \
+  --sbatch-arg "--time=00:30:00"
 
 # Monitor job status
-v8x job submission get --id sub-789 --json | jq '.status'
+v8x job submission get 789 --json | jq '.status'
 ```
+
+For richer template or submission payloads, pass `--json-file ./payload.json` to the template or submission create command.
 
 ## 8. Team Collaboration
 
@@ -112,77 +146,51 @@ v8x job submission get --id sub-789 --json | jq '.status'
 v8x team create ml-research --description "ML Research Team"
 
 # Add team members
-v8x team member add --team ml-research --user alice@company.com --role admin
-v8x team member add --team ml-research --user bob@company.com --role member
+v8x team add-member ml-research alice@company.com
+v8x team add-member ml-research bob@company.com
+
+# Set team roles separately when needed
+v8x team set-role ml-research alice@company.com admin
 
 # List team members
-v8x team member list --team ml-research
+v8x team list-members ml-research
 ```
 
-## 9. Switch Profiles
+## 9. Profiles
 
 ```bash
 v8x profile list
 v8x profile create staging --activate
-v8x login
+v8x login --profile staging
 ```
 
-## 6. GraphQL Query (Programmatic)
+Use `--profile <name>` on any command to target a specific environment.
 
-```python
-import asyncio
-from v8x.gql_client import create_async_graphql_client
-from v8x.config import Settings
-from v8x.auth import extract_persona
-
-async def main():
-    settings = Settings()
-    persona = extract_persona("default")
-    client = create_async_graphql_client(settings, "default")
-    data = await client.execute_async("""query { __typename }""")
-    print(data)
-
-asyncio.run(main())
-```
-
-## 7. Token Cache Inspection
-
-```python
-from v8x.cache import load_tokens_from_cache
-from v8x.schemas import TokenSet
-
-tokens: TokenSet = load_tokens_from_cache("default")
-print(tokens.access_token[:16] + "..." if tokens.access_token else "NO TOKEN")
-```
-
-## 8. Piping & Automation
+## 10. Piping and Automation
 
 ```bash
 # Email of current authenticated user
 auth_email=$(v8x whoami --json | jq -r '.identity.email')
-
 echo "Authenticated as: $auth_email"
 
 # Collect cluster names into a shell array
-mapfile -t clusters < <(v8x clusters list --json | jq -r '.clusters[].name')
+mapfile -t clusters < <(v8x cluster list --json | jq -r '.clusters[].name')
 printf 'Found %d clusters\n' "${#clusters[@]}"
+
+# Summarize clusters
+v8x clusters --json | jq '{count: (.clusters | length), names: [.clusters[].name]}'
 ```
 
-## 9. Handling Errors
+## 11. Handling Errors
 
 Add `-v` to surface debug logs:
 
 ```bash
-vantage -v whoami
+v8x whoami -v
 ```
 
-If tokens are expired the CLI will attempt a refresh; if that fails re-run `v8x login`.
-
-## 10. JSON Extraction Template
-
-```bash
-v8x clusters --json | jq '{count: (.clusters | length), names: [.clusters[].name]}'
-```
+If tokens are expired, the CLI attempts a refresh. If refresh fails, run `v8x login` again.
 
 ---
+
 See also: [Commands](./commands) | [Troubleshooting](./troubleshooting)
