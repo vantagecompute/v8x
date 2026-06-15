@@ -28,7 +28,12 @@ from vantage_sdk.cluster.crud import cluster_sdk
 from vantage_sdk.cluster.schema import Cluster
 from vantage_sdk.exceptions import Abort
 
-from v8x.apps.on_prem.slurm_multipass.constants import APP_NAME as SLURM_MULTIPASS_APP_NAME
+from v8x.apps.on_prem.slurm_multipass.constants import (
+    APP_NAME as SLURM_MULTIPASS_APP_NAME,
+)
+from v8x.apps.on_prem.slurm_multipass.constants import (
+    SUPPORTED_MULTIPASS_OPERATING_SYSTEMS,
+)
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
@@ -37,14 +42,15 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 logger = logging.getLogger(__name__)
 
 SLURM_MULTIPASS_OPTION_KEYS = {"operating_system", "cpu", "mem", "disk"}
-SUPPORTED_SLURM_MULTIPASS_OPERATING_SYSTEMS = {
-    "resolute",
-    "noble",
-    "jammy",
-    "rockylinux10",
-    "rockylinux9",
-    "rockylinux8",
-}
+SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES = ", ".join(
+    SUPPORTED_MULTIPASS_OPERATING_SYSTEMS
+)
+SLURM_MULTIPASS_OPTIONS_HELP = (
+    "Comma-separated slurm-multipass overrides: "
+    f"operating_system choices [{SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES}], "
+    "cpu, mem, disk. Example: "
+    "operating_system=rockylinux9,cpu=4,mem=8,disk=128G"
+)
 
 
 class ClusterFootprintSize(str, Enum):
@@ -118,10 +124,9 @@ def _parse_slurm_multipass_options(options: Optional[str], app: Optional[str]) -
 
     if "operating_system" in parsed:
         operating_system = parsed["operating_system"].lower()
-        if operating_system not in SUPPORTED_SLURM_MULTIPASS_OPERATING_SYSTEMS:
-            supported = ", ".join(sorted(SUPPORTED_SLURM_MULTIPASS_OPERATING_SYSTEMS))
+        if operating_system not in SUPPORTED_MULTIPASS_OPERATING_SYSTEMS:
             raise Abort(
-                f"Unsupported operating_system '{parsed['operating_system']}'. Supported values: {supported}.",
+                f"Unsupported operating_system '{parsed['operating_system']}'. Supported values: {SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES}.",
                 subject="Unsupported Operating System",
                 log_message=f"Unsupported operating_system option: {parsed['operating_system']}",
             )
@@ -264,11 +269,7 @@ async def create_cluster(  # noqa: C901
         Optional[str],
         typer.Option(
             "--options",
-            help=(
-                "Comma-separated slurm-multipass overrides: "
-                "operating_system, cpu, mem, disk. Example: "
-                "operating_system=rockylinux9,cpu=4,mem=8,disk=128G"
-            ),
+            help=SLURM_MULTIPASS_OPTIONS_HELP,
         ),
     ] = None,
 ):
@@ -377,6 +378,7 @@ async def create_cluster(  # noqa: C901
             )
         cloud_account_id = cloud_account.id
     else:
+        assert cloud_account_id is not None
         cloud_account = await cloud_account_sdk.get(ctx, cloud_account_id)
         if not cloud_account:
             raise Abort(
@@ -384,6 +386,13 @@ async def create_cluster(  # noqa: C901
                 subject="Cloud Account Not Found",
                 log_message=f"Cloud account not found: {cloud_account_id}",
             )
+
+    if cloud_account_id is None:
+        raise Abort(
+            "Cloud account did not include an ID.",
+            subject="Invalid Cloud Account",
+            log_message="Resolved cloud account has no ID",
+        )
 
     # Determine cloud type from account provider
     try:

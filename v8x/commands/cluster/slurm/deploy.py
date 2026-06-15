@@ -13,21 +13,13 @@
 
 import typer
 from typing_extensions import Annotated
-from vantage_sdk.cluster.crud import cluster_sdk
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.slurm import slurm_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    build_vdeployer_settings,
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -107,85 +99,30 @@ async def deploy_slurm_cluster(
     """
     console = ctx.obj.console
 
-    # Parse partition specs
-    partitions: list[dict[str, object]] = []
-    for spec in partition:
-        parts = spec.split(":")
-        if len(parts) < 2:
-            raise Abort(
-                f"Invalid partition spec '{spec}'. Use 'name:node_group' or 'name:node_group:default'.",
-                subject="Invalid Input",
-            )
-        p: dict[str, object] = {"name": parts[0], "node_group": parts[1]}
-        if len(parts) >= 3 and parts[2] == "default":
-            p["default"] = True
-        partitions.append(p)
-
-    # Get the slurm cluster's OIDC credentials.
-    # The cluster must already exist (created by 'v8x cluster slurm create').
-    slurm_client_id = await cluster_sdk.get_slurm_cluster_client_id(ctx, name, cluster_name)
-    if not slurm_client_id:
-        raise Abort(
-            f"Slurm cluster '{name}' not found under parent '{cluster_name}'. "
-            "Run 'v8x cluster slurm create' first.",
-            subject="Slurm Cluster Not Found",
-        )
-    slurm_client_secret = await cluster_sdk.get_cluster_client_secret(
-        ctx=ctx, client_id=slurm_client_id
-    )
-    if not slurm_client_secret:
-        raise Abort(
-            f"Failed to fetch client secret for Slurm cluster '{name}' (clientId: {slurm_client_id})",
-            subject="Slurm Cluster Secret Not Found",
-        )
-
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-        slurm_sssd_binder_password = cluster.sssd_binder_password
-        vdeployer_settings = await build_vdeployer_settings(ctx, cluster)
-
-        vdeployer_url = get_vdeployer_web_url(
-            client_id=cluster.client_id,
-            vantage_url=ctx.obj.settings.vantage_url,
-        )
-        url = f"{vdeployer_url}/slurm-cluster"
-
-        request_data = {
-            "name": name,
-            "settings": vdeployer_settings,
-            "control_node_group": control_node_group,
-            "partitions": partitions,
-            "exposed": exposed,
-            "tls_enabled": tls_enabled,
-            "profiling_enabled": profiling,
-            "bridge_enabled": bridge,
-        }
-
-        if slurm_client_id:
-            request_data["client_id"] = slurm_client_id
-        if slurm_client_secret:
-            request_data["client_secret"] = slurm_client_secret
-        if slurm_sssd_binder_password:
-            request_data["sssd_binder_password"] = slurm_sssd_binder_password
-
         console.print(f"[dim]Deploying Slurm cluster '{name}' via vdeployer-web...[/dim]")
-
-        async with get_http_client() as client:
-            response = await client.post(
-                url,
-                json=request_data,
-                headers=get_auth_headers(ctx),
-            )
+        result = await slurm_sdk.deploy(
+            ctx,
+            cluster_name=cluster_name,
+            name=name,
+            control_node_group=control_node_group,
+            partition_specs=partition,
+            exposed=exposed,
+            tls_enabled=tls_enabled,
+            profiling=profiling,
+            bridge=bridge,
+        )
+        response = result.response
 
         if response.status_code == 200:
-            result = response.json()
+            data = response.json() or {}
             console.print(
-                f"[green]\u2713[/green] {result.get('message', f'Slurm cluster {name} deployment started')}"
+                f"[green]\u2713[/green] {data.get('message', f'Slurm cluster {name} deployment started')}"
             )
         elif response.status_code == 409:
-            result = response.json()
+            data = response.json() or {}
             console.print(
-                f"[yellow]Warning:[/yellow] {result.get('detail', 'A task is already running')}"
+                f"[yellow]Warning:[/yellow] {data.get('detail', 'A task is already running')}"
             )
         else:
             console.print(

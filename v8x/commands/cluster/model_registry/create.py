@@ -3,23 +3,16 @@
 """Onboard a model to the registry."""
 
 import json
-from typing import Any
 
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.model_registry import model_registry_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -62,44 +55,26 @@ async def create_model(
     """
     console = ctx.obj.console
 
-    source: dict[str, Any]
-    if source_type == "huggingface":
-        if not repo_id:
-            raise Abort("--repo-id required for huggingface source", subject="Missing Input")
-        source = {"type": "huggingface", "repo_id": repo_id, "revision": revision}
-        if token_secret_name:
-            source["token_secret_name"] = token_secret_name
-    elif source_type == "s3":
-        if not storage_uri:
-            raise Abort("--storage-uri required for s3 source", subject="Missing Input")
-        source = {"type": "s3", "uri": storage_uri}
-    elif source_type == "url":
-        if not source_url:
-            raise Abort("--url required for url source", subject="Missing Input")
-        source = {"type": "url", "url": source_url}
-    else:
-        raise Abort(f"Unknown source type: {source_type}", subject="Invalid Input")
-
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-        url = f"{get_vdeployer_web_url(cluster.client_id, ctx.obj.settings.vantage_url)}/model"
-
-        body: dict[str, Any] = {
-            "name": name,
-            "version": version,
-            "source": source,
-            "options": {"overwrite": overwrite, "async": not sync},
-        }
-        if description:
-            body["registry"] = {"description": description}
-
         console.print(f"[dim]Onboarding model '{name}' v{version}...[/dim]")
-
-        async with get_http_client() as client:
-            response = await client.post(url, json=body, headers=get_auth_headers(ctx))
+        response = await model_registry_sdk.create(
+            ctx,
+            cluster_name=cluster_name,
+            name=name,
+            version=version,
+            source_type=source_type,
+            repo_id=repo_id,
+            storage_uri=storage_uri,
+            source_url=source_url,
+            revision=revision,
+            description=description,
+            overwrite=overwrite,
+            sync=sync,
+            token_secret_name=token_secret_name,
+        )
 
         if response.status_code == 200:
-            data = response.json()
+            data = response.json() or {}
             if ctx.obj.json_output:
                 print(json.dumps(data, default=str))
             else:
@@ -111,10 +86,8 @@ async def create_model(
                         f"  Artifact: {result.get('artifact', {}).get('artifact_uri', 'N/A')}"
                     )
         else:
-            try:
-                detail = response.json().get("detail", response.text)
-            except Exception:
-                detail = response.text
+            data = response.json() or {}
+            detail = data.get("detail", response.text) if isinstance(data, dict) else response.text
             console.print(f"[red]Error:[/red] {response.status_code}: {detail}")
 
     except Abort:

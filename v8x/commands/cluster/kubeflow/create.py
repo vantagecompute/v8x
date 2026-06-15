@@ -13,21 +13,13 @@
 
 import typer
 from typing_extensions import Annotated
-from vantage_sdk.cluster.crud import cluster_sdk
+from vantage_sdk.cluster.application.kubeflow import kubeflow_sdk
 from vantage_sdk.exceptions import Abort
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    build_vdeployer_settings,
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -65,28 +57,6 @@ async def create_kubeflow(
     console = ctx.obj.console
 
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-
-        # Persist kubeflow_enabled=true in cluster settings (mirrors 'service enable')
-        creation_params = cluster.creation_parameters or {}
-        existing_settings = dict(creation_params.get("settings", {}))
-        if not existing_settings.get("kubeflow_enabled", False):
-            existing_settings["kubeflow_enabled"] = True
-            await cluster_sdk.update_cluster(ctx, name=cluster_name, settings=existing_settings)
-            console.print("[dim]Updated cluster settings: kubeflow_enabled=true[/dim]")
-
-        vdeployer_settings = await build_vdeployer_settings(ctx, cluster)
-
-        vdeployer_url = get_vdeployer_web_url(
-            client_id=cluster.client_id,
-            vantage_url=ctx.obj.settings.vantage_url,
-        )
-        url = f"{vdeployer_url}/kubeflow"
-
-        request_data: dict = {"settings": vdeployer_settings}
-        if admin_node_group:
-            request_data["admin_node_group"] = admin_node_group
-
         if admin_node_group:
             console.print(
                 f"[dim]Deploying Kubeflow on '{cluster_name}' (admin node group: {admin_node_group})...[/dim]"
@@ -94,20 +64,19 @@ async def create_kubeflow(
         else:
             console.print(f"[dim]Deploying Kubeflow on '{cluster_name}'...[/dim]")
 
-        async with get_http_client() as client:
-            response = await client.post(
-                url,
-                json=request_data,
-                headers=get_auth_headers(ctx),
-            )
+        response = await kubeflow_sdk.create(
+            ctx,
+            cluster_name=cluster_name,
+            admin_node_group=admin_node_group,
+        )
 
         if response.status_code == 200:
-            result = response.json()
+            result = response.json() or {}
             console.print(
                 f"[green]\u2713[/green] {result.get('message', 'Kubeflow deployment started')}"
             )
         elif response.status_code == 409:
-            result = response.json()
+            result = response.json() or {}
             console.print(
                 f"[yellow]Warning:[/yellow] {result.get('detail', 'A task is already running')}"
             )

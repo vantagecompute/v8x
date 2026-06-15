@@ -40,7 +40,6 @@ from .constants import (
     MULTIPASS_CLOUD_IMAGE_BASE_URL,
     MULTIPASS_CLOUD_IMAGE_DEST,
     MULTIPASS_CLOUD_IMAGE_LOCAL,
-    MULTIPASS_CLOUD_IMAGE_URL,
     SUBSTRATE,
     get_multipass_cloud_image_name,
 )
@@ -95,17 +94,11 @@ def _multipass_image_origin(
     local_image = MULTIPASS_CLOUD_IMAGE_LOCAL.parent / image_name
     downloaded_image = MULTIPASS_CLOUD_IMAGE_DEST.parent / image_name
 
-    if operating_system == DEFAULT_MULTIPASS_OPERATING_SYSTEM:
-        local_image = MULTIPASS_CLOUD_IMAGE_LOCAL
-        downloaded_image = MULTIPASS_CLOUD_IMAGE_DEST
-
     if local_image.exists():
         return f"file://{local_image}"
     if downloaded_image.exists():
         return f"file://{downloaded_image}"
 
-    if operating_system == DEFAULT_MULTIPASS_OPERATING_SYSTEM:
-        return MULTIPASS_CLOUD_IMAGE_URL
     return f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/{image_name}"
 
 

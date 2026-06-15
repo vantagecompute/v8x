@@ -5,18 +5,12 @@
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.secret import secret_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -41,11 +35,7 @@ async def delete_secret(
         return
 
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-        url = f"{get_vdeployer_web_url(cluster.client_id, ctx.obj.settings.vantage_url)}/secrets/{name}"
-
-        async with get_http_client() as client:
-            response = await client.delete(url, headers=get_auth_headers(ctx))
+        response = await secret_sdk.delete(ctx, cluster_name=cluster_name, name=name)
 
         if response.status_code in (200, 204):
             console.print(f"[green]✓[/green] Secret '{name}' deleted")

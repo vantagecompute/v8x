@@ -126,6 +126,12 @@ CLOUD = "on_prem"
 SUBSTRATE = "multipass"
 
 DEFAULT_MULTIPASS_OPERATING_SYSTEM = "rockylinux10"
+SUPPORTED_MULTIPASS_OPERATING_SYSTEMS = (
+    "rockylinux9",
+    "rockylinux10",
+    "noble",
+    "resolute",
+)
 
 VANTAGE_AGENT_SNAP_NAME = "vantage-agent"
 # Keep this aligned with the publish workflow path so the CloudFront object stays stable.
@@ -143,6 +149,12 @@ MULTIPASS_CLOUD_IMAGE_BASE_URL = (
 
 def get_multipass_cloud_image_name(operating_system: str) -> str:
     """Return the cloud image filename for a supported Multipass OS key."""
+    if operating_system not in SUPPORTED_MULTIPASS_OPERATING_SYSTEMS:
+        supported = ", ".join(SUPPORTED_MULTIPASS_OPERATING_SYSTEMS)
+        raise ValueError(
+            f"Unsupported Multipass operating system '{operating_system}'. "
+            f"Supported values: {supported}."
+        )
     return f"multipass-singlenode-{operating_system}-{MULTIPASS_ARCH}.img"
 
 
