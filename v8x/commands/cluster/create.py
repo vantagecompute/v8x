@@ -28,8 +28,8 @@ from vantage_sdk.cluster.crud import cluster_sdk
 from vantage_sdk.cluster.schema import Cluster
 from vantage_sdk.exceptions import Abort
 
-from v8x.auth import attach_persona
 from v8x.apps.on_prem.slurm_multipass.constants import APP_NAME as SLURM_MULTIPASS_APP_NAME
+from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client

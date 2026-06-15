@@ -25,7 +25,7 @@ from rich.console import Console
 from rich.panel import Panel
 from vantage_sdk.exceptions import Abort
 
-from v8x import AsyncTyper, __version__, maybe_run_async, setup_logging
+from v8x import AsyncTyper, __version__, setup_logging
 from v8x.auth import (
     extract_persona,
     fetch_auth_tokens,

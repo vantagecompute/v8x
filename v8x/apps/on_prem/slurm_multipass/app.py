@@ -24,11 +24,11 @@ from typing_extensions import Annotated
 from vantage_sdk.cloud.crud import cloud_sdk
 from vantage_sdk.cluster.schema import Cluster, VantageClusterContext
 
+from v8x.config import attach_settings
 from v8x.deployment_apps.common import (
     create_deployment_with_init_status,
     generate_dev_cluster_data,
 )
-from v8x.config import attach_settings
 from v8x.deployments.crud import deployment_sdk
 from v8x.deployments.schema import Deployment
 from v8x.exceptions import handle_abort
@@ -71,6 +71,7 @@ def _generate_cloud_init_configuration(
 
     Args:
         vantage_cluster_ctx: VantageClusterContext with cluster details
+        operating_system: str = operating system to use.
 
     Returns:
         Tuple of (cloud_init_config, image_origin)

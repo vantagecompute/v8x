@@ -49,7 +49,10 @@ def test_write_files_contain_sssd_config() -> None:
     assert "ou=org-123,ou=organizations" in sssd_file["content"]
     assert "ldap://ldap.example.com" in sssd_file["content"]
     assert "binder-secret" in sssd_file["content"]
-    assert "ldap_access_filter = (memberOf=cn=slurm-users,ou=Groups,ou=org-123,ou=organizations,dc=vantagecompute,dc=ai)" in sssd_file["content"]
+    assert (
+        "ldap_access_filter = (memberOf=cn=slurm-users,ou=Groups,ou=org-123,ou=organizations,dc=vantagecompute,dc=ai)"
+        in sssd_file["content"]
+    )
     assert "ldap_access_filter = (|" not in sssd_file["content"]
     assert "refresh_expired_interval = 300" in sssd_file["content"]
     assert "ldap_user_memberof = memberOf" in sssd_file["content"]
@@ -77,14 +80,20 @@ def test_write_files_contain_slurm_configs() -> None:
     slurm_conf = next(f for f in write_files if f["path"] == "/etc/slurm/slurm.conf")
     assert slurm_conf["permissions"] == "0644"
     assert "ClusterName=demo" in slurm_conf["content"]
-    assert "AuthAltParameters=jwt_key=/etc/slurm/jwt_hs256.key,jwks=/etc/slurm/jwks.json,userclaimfield=preferred_username" in slurm_conf["content"]
+    assert (
+        "AuthAltParameters=jwt_key=/etc/slurm/jwt_hs256.key,jwks=/etc/slurm/jwks.json,userclaimfield=preferred_username"
+        in slurm_conf["content"]
+    )
     assert "AuthInfo=use_client_ids" in slurm_conf["content"]
     assert "@HEADNODE_HOSTNAME@" in slurm_conf["content"]
     assert "@CPUs@" in slurm_conf["content"]
 
     slurmdbd_conf = next(f for f in write_files if f["path"] == "/etc/slurm/slurmdbd.conf")
     assert slurmdbd_conf["permissions"] == "0600"
-    assert "AuthAltParameters=jwt_key=/etc/slurm/jwt_hs256.key,jwks=/etc/slurm/jwks.json,userclaimfield=preferred_username" in slurmdbd_conf["content"]
+    assert (
+        "AuthAltParameters=jwt_key=/etc/slurm/jwt_hs256.key,jwks=/etc/slurm/jwks.json,userclaimfield=preferred_username"
+        in slurmdbd_conf["content"]
+    )
     assert "@HEADNODE_HOSTNAME@" in slurmdbd_conf["content"]
 
     slurmrestd_defaults = next(f for f in write_files if f["path"] == "/etc/default/slurmrestd")
@@ -106,7 +115,10 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
     # runcmd[1]: rewrite Slurm configs after full-init overwrites defaults
     rewrite_configs = runcmd[1]
     assert "cat >/etc/slurm/slurm.conf" in rewrite_configs
-    assert "AuthAltParameters=jwt_key=/etc/slurm/jwt_hs256.key,jwks=/etc/slurm/jwks.json,userclaimfield=preferred_username" in rewrite_configs
+    assert (
+        "AuthAltParameters=jwt_key=/etc/slurm/jwt_hs256.key,jwks=/etc/slurm/jwks.json,userclaimfield=preferred_username"
+        in rewrite_configs
+    )
 
     # runcmd[2]: PAM/SSSD/logind setup
     pam_setup = runcmd[2]
@@ -137,7 +149,7 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
 
     # runcmd[5]: database initialization
     database_command = runcmd[5]
-    assert "systemctl enable --now \"$database_service\"" in database_command
+    assert 'systemctl enable --now "$database_service"' in database_command
     assert "CREATE USER IF NOT EXISTS 'slurm'@'localhost'" in database_command
     assert "CREATE DATABASE IF NOT EXISTS slurm" in database_command
 
@@ -156,11 +168,6 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
     assert "grant_type=client_credentials" in agent_command
     assert "Authorization: Bearer $AUTH_TOKEN" in agent_command
     assert "snap install --classic --dangerous /tmp/${SNAP_NAME}.snap" in agent_command
-    assert (
-        f"SNAP_BASE_URL={VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL}" in agent_command
-    )
-    assert (
-        'SNAP_URL="$SNAP_BASE_URL/$SNAP_ARCH/latest/$SNAP_NAME.snap"'
-        in agent_command
-    )
+    assert f"SNAP_BASE_URL={VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL}" in agent_command
+    assert 'SNAP_URL="$SNAP_BASE_URL/$SNAP_ARCH/latest/$SNAP_NAME.snap"' in agent_command
     assert not any("jobbergate-agent" in command and "snap set" in command for command in runcmd)
