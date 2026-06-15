@@ -94,11 +94,7 @@ class CloudInitTemplate:
                     },
                     {
                         "path": "/etc/systemd/logind.conf.d/keep-user-sessions.conf",
-                        "content": (
-                            "[Login]\n"
-                            "KillUserProcesses=no\n"
-                            "UserStopDelaySec=300\n"
-                        ),
+                        "content": ("[Login]\nKillUserProcesses=no\nUserStopDelaySec=300\n"),
                         "owner": "root:root",
                         "permissions": "0644",
                     },
@@ -310,7 +306,7 @@ SNAP_ARCH=$(dpkg --print-architecture)
 SNAP_NAME={shlex.quote(VANTAGE_AGENT_SNAP_NAME)}
 SNAP_BASE_URL={shlex.quote(VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL)}
 SNAP_URL="$SNAP_BASE_URL/$SNAP_ARCH/latest/$SNAP_NAME.snap"
-OIDC_TOKEN_URL={shlex.quote(context.oidc_base_url + '/realms/vantage/protocol/openid-connect/token')}
+OIDC_TOKEN_URL={shlex.quote(context.oidc_base_url + "/realms/vantage/protocol/openid-connect/token")}
 
 AUTH_TOKEN=$(
     curl -fsSL -X POST "$OIDC_TOKEN_URL" \

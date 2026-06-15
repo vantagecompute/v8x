@@ -13,15 +13,21 @@
 # limitations under the License.
 
 import asyncio
+import inspect
 from pathlib import Path
 from types import SimpleNamespace
+from typing import get_args
 
 import pytest
 from vantage_sdk.exceptions import Abort
 
 from v8x.apps.on_prem.slurm_multipass import app as multipass_app
 from v8x.apps.on_prem.slurm_multipass import constants as multipass_constants
-from v8x.commands.cluster.create import _parse_slurm_multipass_options
+from v8x.commands.cluster.create import (
+    SLURM_MULTIPASS_OPTIONS_HELP,
+    _parse_slurm_multipass_options,
+    create_cluster,
+)
 
 
 def _cloud_init_for_operating_system(recorded: dict, operating_system: str) -> tuple[str, str]:
@@ -39,6 +45,45 @@ def test_parse_slurm_multipass_options_normalizes_example_values() -> None:
         "mem": "8GB",
         "disk": "128GB",
     }
+
+
+@pytest.mark.parametrize(
+    "operating_system",
+    multipass_constants.SUPPORTED_MULTIPASS_OPERATING_SYSTEMS,
+)
+def test_parse_slurm_multipass_options_accepts_supported_operating_systems(
+    operating_system: str,
+) -> None:
+    assert _parse_slurm_multipass_options(
+        f"operating_system={operating_system}",
+        "slurm-multipass",
+    ) == {"operating_system": operating_system}
+
+
+def test_parse_slurm_multipass_options_rejects_unsupported_operating_system() -> None:
+    with pytest.raises(Abort, match="Unsupported operating_system"):
+        _parse_slurm_multipass_options(
+            "operating_system=jammy",
+            "slurm-multipass",
+        )
+
+
+def test_multipass_image_name_rejects_unsupported_operating_system() -> None:
+    with pytest.raises(ValueError, match="Unsupported Multipass operating system"):
+        multipass_constants.get_multipass_cloud_image_name("jammy")
+
+
+def test_cluster_create_options_help_shows_operating_system_choices() -> None:
+    command = create_cluster
+    while hasattr(command, "__wrapped__"):
+        command = command.__wrapped__
+
+    options_parameter = inspect.signature(command).parameters["options"]
+    option_info = get_args(options_parameter.annotation)[1]
+
+    assert option_info.help == SLURM_MULTIPASS_OPTIONS_HELP
+    for operating_system in multipass_constants.SUPPORTED_MULTIPASS_OPERATING_SYSTEMS:
+        assert operating_system in option_info.help
 
 
 def test_parse_slurm_multipass_options_rejects_other_apps() -> None:

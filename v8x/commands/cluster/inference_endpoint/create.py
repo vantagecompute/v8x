@@ -3,23 +3,16 @@
 """Create inference endpoint."""
 
 import json
-from typing import Any
 
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.inference_endpoint import inference_endpoint_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -92,66 +85,32 @@ async def create_inference(  # noqa: C901
     """
     console = ctx.obj.console
 
-    model_source: dict[str, Any]
-    if model_source_type == "model_registry":
-        if not model_id:
-            raise Abort("--model-id required for model_registry source", subject="Missing Input")
-        model_source = {"type": "model_registry", "model_id": model_id}
-    elif model_source_type == "huggingface":
-        if not model_id:
-            raise Abort("--model-id required for huggingface source", subject="Missing Input")
-        model_source = {"type": "huggingface", "model_id": model_id}
-    elif model_source_type == "s3":
-        if not storage_uri:
-            raise Abort("--storage-uri required for s3 source", subject="Missing Input")
-        model_source = {"type": "s3", "storage_uri": storage_uri}
-    elif model_source_type == "custom":
-        if not image:
-            raise Abort("--image required for custom source", subject="Missing Input")
-        model_source = {"type": "custom", "container": {"image": image}}
-    else:
-        raise Abort(f"Unknown source type: {model_source_type}", subject="Invalid Input")
-
-    sizing: dict[str, Any] = {
-        "cpu": cpu,
-        "memory": memory,
-        "min_replicas": min_replicas,
-        "max_replicas": max_replicas,
-    }
-    if gpu_count > 0:
-        sizing["gpus"] = {"vendor": "nvidia.com/gpu", "num": gpu_count}
-
-    body: dict[str, Any] = {
-        "name": name,
-        "model_source": model_source,
-        "sizing": sizing,
-    }
-    if runtime:
-        body["runtime"] = runtime
-    if framework:
-        body["framework"] = framework
-    if protocol_version:
-        body["protocol_version"] = protocol_version
-    if compute_pool:
-        body["compute_pool"] = compute_pool
-    if credentials_secret:
-        body["credentials_secret"] = credentials_secret
-
-    if kind == "llm":
-        body["parallelism"] = {"tensor": tensor_parallel, "pipeline": 1, "data": 1}
-
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-        base = get_vdeployer_web_url(cluster.client_id, ctx.obj.settings.vantage_url)
-        url = f"{base}/inferences/llm" if kind == "llm" else f"{base}/inferences"
-
         console.print(f"[dim]Creating {kind} inference '{name}'...[/dim]")
-
-        async with get_http_client() as client:
-            response = await client.post(url, json=body, headers=get_auth_headers(ctx))
+        response = await inference_endpoint_sdk.create(
+            ctx,
+            cluster_name=cluster_name,
+            name=name,
+            kind=kind,
+            model_source_type=model_source_type,
+            model_id=model_id,
+            storage_uri=storage_uri,
+            image=image,
+            runtime=runtime,
+            compute_pool=compute_pool,
+            cpu=cpu,
+            memory=memory,
+            gpu_count=gpu_count,
+            min_replicas=min_replicas,
+            max_replicas=max_replicas,
+            tensor_parallel=tensor_parallel,
+            framework=framework,
+            protocol_version=protocol_version,
+            credentials_secret=credentials_secret,
+        )
 
         if response.status_code in (200, 201):
-            data = response.json()
+            data = response.json() or {}
             if ctx.obj.json_output:
                 print(json.dumps(data, default=str))
             else:
@@ -160,10 +119,8 @@ async def create_inference(  # noqa: C901
                 console.print(f"  URL:    {data.get('url', 'N/A')}")
                 console.print(f"  Status: {data.get('status', {}).get('phase', 'N/A')}")
         else:
-            try:
-                detail = response.json().get("detail", response.text)
-            except Exception:
-                detail = response.text
+            data = response.json() or {}
+            detail = data.get("detail", response.text) if isinstance(data, dict) else response.text
             console.print(f"[red]Error:[/red] {response.status_code}: {detail}")
 
     except Abort:

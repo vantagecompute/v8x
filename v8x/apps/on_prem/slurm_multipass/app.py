@@ -24,11 +24,11 @@ from typing_extensions import Annotated
 from vantage_sdk.cloud.crud import cloud_sdk
 from vantage_sdk.cluster.schema import Cluster, VantageClusterContext
 
+from v8x.config import attach_settings
 from v8x.deployment_apps.common import (
     create_deployment_with_init_status,
     generate_dev_cluster_data,
 )
-from v8x.config import attach_settings
 from v8x.deployments.crud import deployment_sdk
 from v8x.deployments.schema import Deployment
 from v8x.exceptions import handle_abort
@@ -40,7 +40,6 @@ from .constants import (
     MULTIPASS_CLOUD_IMAGE_BASE_URL,
     MULTIPASS_CLOUD_IMAGE_DEST,
     MULTIPASS_CLOUD_IMAGE_LOCAL,
-    MULTIPASS_CLOUD_IMAGE_URL,
     SUBSTRATE,
     get_multipass_cloud_image_name,
 )
@@ -71,6 +70,7 @@ def _generate_cloud_init_configuration(
 
     Args:
         vantage_cluster_ctx: VantageClusterContext with cluster details
+        operating_system: str = operating system to use.
 
     Returns:
         Tuple of (cloud_init_config, image_origin)
@@ -94,17 +94,11 @@ def _multipass_image_origin(
     local_image = MULTIPASS_CLOUD_IMAGE_LOCAL.parent / image_name
     downloaded_image = MULTIPASS_CLOUD_IMAGE_DEST.parent / image_name
 
-    if operating_system == DEFAULT_MULTIPASS_OPERATING_SYSTEM:
-        local_image = MULTIPASS_CLOUD_IMAGE_LOCAL
-        downloaded_image = MULTIPASS_CLOUD_IMAGE_DEST
-
     if local_image.exists():
         return f"file://{local_image}"
     if downloaded_image.exists():
         return f"file://{downloaded_image}"
 
-    if operating_system == DEFAULT_MULTIPASS_OPERATING_SYSTEM:
-        return MULTIPASS_CLOUD_IMAGE_URL
     return f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/{image_name}"
 
 

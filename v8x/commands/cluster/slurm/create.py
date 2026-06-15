@@ -13,21 +13,13 @@
 
 import typer
 from typing_extensions import Annotated
-from vantage_sdk.cluster.crud import cluster_sdk
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.slurm import slurm_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    build_vdeployer_settings,
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -147,98 +139,41 @@ async def create_slurm_cluster(
     """
     console = ctx.obj.console
 
-    # Parse partition specs
-    partitions: list[dict[str, object]] = []
-    for spec in partition:
-        parts = spec.split(":")
-        if len(parts) < 2:
-            raise Abort(
-                f"Invalid partition spec '{spec}'. Use 'name:node_group' or 'name:node_group:default'.",
-                subject="Invalid Input",
-            )
-        p: dict[str, object] = {"name": parts[0], "node_group": parts[1]}
-        if len(parts) >= 3 and parts[2] == "default":
-            p["default"] = True
-        partitions.append(p)
-
-    # Step 1: Register the Slurm cluster via API
-    console.print(
-        f"[dim]Registering Slurm cluster '{name}' in K8s cluster '{cluster_name}'...[/dim]"
-    )
-
-    slurm_record = await cluster_sdk.create_slurm_cluster(
-        ctx,
-        name=name,
-        parent_cluster_name=cluster_name,
-    )
-    slurm_client_id = slurm_record.get("clientId")
-    slurm_client_secret = slurm_record.get("clientSecret")
-
-    if not slurm_client_id or not slurm_client_secret:
-        raise Abort(
-            f"Failed to get credentials for Slurm cluster '{name}'. "
-            f"clientId={'present' if slurm_client_id else 'missing'}, "
-            f"clientSecret={'present' if slurm_client_secret else 'missing'}",
-            subject="Slurm Cluster Credentials Missing",
-        )
-
-    console.print(f"[green]\u2713[/green] Slurm cluster [green]'{name}'[/green] registered")
-    console.print(f"  Client ID: {slurm_client_id}")
-    console.print(f"  Client Secret: {slurm_client_secret[:20]}...")
-
-    # Step 2: Deploy via vdeployer-web
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-        vdeployer_settings = await build_vdeployer_settings(ctx, cluster)
-
-        vdeployer_url = get_vdeployer_web_url(
-            client_id=cluster.client_id,
-            vantage_url=ctx.obj.settings.vantage_url,
+        result = await slurm_sdk.create(
+            ctx,
+            cluster_name=cluster_name,
+            name=name,
+            control_node_group=control_node_group,
+            partition_specs=partition,
+            exposed=exposed,
+            tls_enabled=tls_enabled,
+            profiling=profiling,
+            bridge=bridge,
+            slurmctld_lb_ip=slurmctld_lb_ip,
+            slurmdbd_lb_ip=slurmdbd_lb_ip,
+            slurmrestd_lb_ip=slurmrestd_lb_ip,
+            influxdb_lb_ip=influxdb_lb_ip,
         )
-        url = f"{vdeployer_url}/slurm-cluster"
-
-        request_data = {
-            "name": name,
-            "settings": vdeployer_settings,
-            "control_node_group": control_node_group,
-            "partitions": partitions,
-            "exposed": exposed,
-            "tls_enabled": tls_enabled,
-            "profiling_enabled": profiling,
-            "bridge_enabled": bridge,
-            "client_id": slurm_client_id,
-            "client_secret": slurm_client_secret,
-        }
-        # Only include the pinned LB IPs in the request when they were
-        # supplied — vdeployer treats them as "required if exposed=True"
-        # and their absence is a clear server-side validation error.
-        if slurmctld_lb_ip:
-            request_data["slurmctld_lb_ip"] = slurmctld_lb_ip
-        if slurmdbd_lb_ip:
-            request_data["slurmdbd_lb_ip"] = slurmdbd_lb_ip
-        if slurmrestd_lb_ip:
-            request_data["slurmrestd_lb_ip"] = slurmrestd_lb_ip
-        if influxdb_lb_ip:
-            request_data["influxdb_lb_ip"] = influxdb_lb_ip
-
+        slurm_client_id = result.registration.get("clientId")
+        slurm_client_secret = result.registration.get("clientSecret")
+        console.print(f"[green]\u2713[/green] Slurm cluster [green]'{name}'[/green] registered")
+        console.print(f"  Client ID: {slurm_client_id}")
+        if slurm_client_secret:
+            console.print(f"  Client Secret: {slurm_client_secret[:20]}...")
         console.print(f"[dim]Deploying Slurm cluster '{name}' via vdeployer-web...[/dim]")
 
-        async with get_http_client() as client:
-            response = await client.post(
-                url,
-                json=request_data,
-                headers=get_auth_headers(ctx),
-            )
+        response = result.response
 
         if response.status_code == 200:
-            result = response.json()
+            data = response.json() or {}
             console.print(
-                f"[green]\u2713[/green] {result.get('message', f'Slurm cluster {name} deployment started')}"
+                f"[green]\u2713[/green] {data.get('message', f'Slurm cluster {name} deployment started')}"
             )
         elif response.status_code == 409:
-            result = response.json()
+            data = response.json() or {}
             console.print(
-                f"[yellow]Warning:[/yellow] {result.get('detail', 'A task is already running')}"
+                f"[yellow]Warning:[/yellow] {data.get('detail', 'A task is already running')}"
             )
         else:
             console.print(

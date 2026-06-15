@@ -120,15 +120,24 @@ ldap_opt_timeout     = 10
 ldap_schema = rfc2307bis
 """
 
+
 CLOUD = "on_prem"
 
 SUBSTRATE = "multipass"
 
 DEFAULT_MULTIPASS_OPERATING_SYSTEM = "rockylinux10"
+SUPPORTED_MULTIPASS_OPERATING_SYSTEMS = (
+    "rockylinux9",
+    "rockylinux10",
+    "noble",
+    "resolute",
+)
 
 VANTAGE_AGENT_SNAP_NAME = "vantage-agent"
 # Keep this aligned with the publish workflow path so the CloudFront object stays stable.
-VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL = "https://vantage-artifacts.vantagecompute.ai/snaps/vantage-agent-snap"
+VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL = (
+    "https://vantage-artifacts.vantagecompute.ai/snaps/vantage-agent-snap"
+)
 
 _ARCH_MAP = {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "arm64"}
 MULTIPASS_ARCH = _ARCH_MAP.get(platform.machine().lower(), "amd64")
@@ -140,6 +149,12 @@ MULTIPASS_CLOUD_IMAGE_BASE_URL = (
 
 def get_multipass_cloud_image_name(operating_system: str) -> str:
     """Return the cloud image filename for a supported Multipass OS key."""
+    if operating_system not in SUPPORTED_MULTIPASS_OPERATING_SYSTEMS:
+        supported = ", ".join(SUPPORTED_MULTIPASS_OPERATING_SYSTEMS)
+        raise ValueError(
+            f"Unsupported Multipass operating system '{operating_system}'. "
+            f"Supported values: {supported}."
+        )
     return f"multipass-singlenode-{operating_system}-{MULTIPASS_ARCH}.img"
 
 
@@ -155,20 +170,19 @@ def get_multipass_cloud_image_dest(operating_system: str) -> Path:
 
 def get_multipass_cloud_image_local(operating_system: str) -> Path:
     """Return the local built cloud image path for a supported Multipass OS key."""
-    return Path.home() / "multipass-singlenode" / "build" / get_multipass_cloud_image_name(
-        operating_system
+    return (
+        Path.home()
+        / "multipass-singlenode"
+        / "build"
+        / get_multipass_cloud_image_name(operating_system)
     )
 
 
 MULTIPASS_CLOUD_IMAGE_URL = get_multipass_cloud_image_url(DEFAULT_MULTIPASS_OPERATING_SYSTEM)
 
-MULTIPASS_CLOUD_IMAGE_DEST = get_multipass_cloud_image_dest(
-    DEFAULT_MULTIPASS_OPERATING_SYSTEM
-)
+MULTIPASS_CLOUD_IMAGE_DEST = get_multipass_cloud_image_dest(DEFAULT_MULTIPASS_OPERATING_SYSTEM)
 
-MULTIPASS_CLOUD_IMAGE_LOCAL = get_multipass_cloud_image_local(
-    DEFAULT_MULTIPASS_OPERATING_SYSTEM
-)
+MULTIPASS_CLOUD_IMAGE_LOCAL = get_multipass_cloud_image_local(DEFAULT_MULTIPASS_OPERATING_SYSTEM)
 
 SLURM_JWKS_URL_SUFFIX = "/realms/vantage/protocol/openid-connect/certs"
 
@@ -185,7 +199,8 @@ def generate_slurm_conf(cluster_name: str) -> str:
         @SOCKETS@            — CPU sockets
         @REAL_MEMORY@        — total RAM in MB
     """
-    return dedent(f"""\
+    return (
+        dedent(f"""\
         ClusterName={cluster_name}
 
         # MCS
@@ -264,7 +279,9 @@ def generate_slurm_conf(cluster_name: str) -> str:
 
         # Nodeset
         NodeSet=compute Feature=compute
-    """).strip() + "\n"
+    """).strip()
+        + "\n"
+    )
 
 
 def generate_slurmdbd_conf() -> str:
@@ -273,7 +290,8 @@ def generate_slurmdbd_conf() -> str:
     Runtime placeholders (resolved on-VM):
         @HEADNODE_HOSTNAME@  — $(hostname)
     """
-    return dedent("""\
+    return (
+        dedent("""\
         DbdHost=@HEADNODE_HOSTNAME@
         DbdPort=6819
 
@@ -294,10 +312,15 @@ def generate_slurmdbd_conf() -> str:
         StorageLoc=slurm
 
         DebugLevel=info
-    """).strip() + "\n"
+    """).strip()
+        + "\n"
+    )
 
 
-SLURMRESTD_DEFAULTS = dedent("""\
+SLURMRESTD_DEFAULTS = (
+    dedent("""\
     SLURMRESTD_OPTIONS="-s openapi/slurmctld,openapi/slurmdbd"
     SLURM_CONF=/etc/slurm/slurm.conf
-""").strip() + "\n"
+""").strip()
+    + "\n"
+)

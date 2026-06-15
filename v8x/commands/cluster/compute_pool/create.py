@@ -12,23 +12,17 @@
 """Create compute pool command."""
 
 import json
-from typing import Any, Optional
+from typing import Optional
 
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.compute_pool import compute_pool_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -139,47 +133,26 @@ async def create_compute_pool(
             taints.append({"key": key, "value": value, "effect": effect})
 
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-
-        vdeployer_url = get_vdeployer_web_url(
-            client_id=cluster.client_id,
-            vantage_url=ctx.obj.settings.vantage_url,
-        )
-
-        url = f"{vdeployer_url}/compute-pools"
-        if workload:
-            url += f"?workload={workload}"
-
-        request_data: dict[str, Any] = {
-            "name": name,
-            "min_size": min_size,
-            "max_size": max_size,
-            "instance_type": instance_type,
-            "is_gpu": gpu,
-            "is_control_plane": control_plane,
-        }
-
-        if gpu_count > 0:
-            request_data["gpu_count"] = gpu_count
-
-        if labels:
-            request_data["labels"] = labels
-        if taints:
-            request_data["taints"] = taints
-
         console.print(
             f"[dim]Creating compute pool [green]'{name}'[/green] on [green]'{cluster_name}'[/green]...[/dim]"
         )
-
-        async with get_http_client() as client:
-            response = await client.put(
-                url,
-                json=request_data,
-                headers=get_auth_headers(ctx),
-            )
+        response = await compute_pool_sdk.create(
+            ctx,
+            cluster_name=cluster_name,
+            name=name,
+            instance_type=instance_type,
+            min_size=min_size,
+            max_size=max_size,
+            gpu=gpu,
+            gpu_count=gpu_count,
+            control_plane=control_plane,
+            labels=labels,
+            taints=taints,
+            workload=workload,
+        )
 
         if response.status_code == 201:
-            data = response.json()
+            data = response.json() or {}
             console.print(f"[green]✓[/green] Compute pool [green]'{data['name']}'[/green] created")
             console.print(f"  Min size: {data['min_size']}, Max size: {data['max_size']}")
             if data.get("instance_type"):

@@ -61,12 +61,8 @@ def _global_patch_base_dir():
         with patch("v8x.config.V8X_LOCAL_USER_BASE_DIR", _test_home):
             with patch("v8x.constants.USER_CONFIG_FILE", _test_home / "config.json"):
                 with patch("v8x.config.USER_CONFIG_FILE", _test_home / "config.json"):
-                    with patch(
-                        "v8x.constants.USER_TOKEN_CACHE_DIR", _test_home / "token_cache"
-                    ):
-                        with patch(
-                            "v8x.config.USER_TOKEN_CACHE_DIR", _test_home / "token_cache"
-                        ):
+                    with patch("v8x.constants.USER_TOKEN_CACHE_DIR", _test_home / "token_cache"):
+                        with patch("v8x.config.USER_TOKEN_CACHE_DIR", _test_home / "token_cache"):
                             with patch(
                                 "v8x.constants.V8X_ACTIVE_PROFILE",
                                 _test_home / "active_profile",

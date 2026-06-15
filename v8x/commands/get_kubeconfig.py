@@ -26,9 +26,9 @@ from vantage_sdk.exceptions import Abort
 
 from v8x.auth import attach_persona
 from v8x.cache import with_cache
-from v8x.deployment_apps.common import get_auth_headers
 from v8x.commands.cluster.utils import get_vdeployer_web_url
 from v8x.config import attach_settings
+from v8x.deployment_apps.common import get_auth_headers
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
 

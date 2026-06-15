@@ -7,18 +7,12 @@ import json
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.secret import secret_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -37,11 +31,7 @@ async def get_secret(
     """
     console = ctx.obj.console
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-        url = f"{get_vdeployer_web_url(cluster.client_id, ctx.obj.settings.vantage_url)}/secrets/{name}"
-
-        async with get_http_client() as client:
-            response = await client.get(url, headers=get_auth_headers(ctx))
+        response = await secret_sdk.get(ctx, cluster_name=cluster_name, name=name)
 
         if response.status_code == 404:
             console.print(f"[yellow]Secret '{name}' not found[/yellow]")
@@ -49,7 +39,7 @@ async def get_secret(
         if response.status_code != 200:
             raise Abort(f"Failed: {response.text}", subject="API Error")
 
-        data = response.json()
+        data = response.json() or {}
         if ctx.obj.json_output:
             print(json.dumps(data, default=str))
             return

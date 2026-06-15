@@ -28,12 +28,12 @@ from vantage_sdk.cloud.crud import cloud_sdk
 from vantage_sdk.cluster.schema import Cluster, VantageClusterContext
 
 from v8x.auth import attach_persona
+from v8x.config import attach_settings
+from v8x.constants import V8X_LOCAL_USER_BASE_DIR
 from v8x.deployment_apps.common import (
     create_deployment_with_init_status,
     generate_dev_cluster_data,
 )
-from v8x.config import attach_settings
-from v8x.constants import V8X_LOCAL_USER_BASE_DIR
 from v8x.deployments.crud import deployment_sdk
 from v8x.deployments.schema import Deployment
 from v8x.exceptions import handle_abort
@@ -778,7 +778,7 @@ class LXDApiClient:
         success, _ = self.get_file(container, path)
         return success
 
-    # _wait_for_vdeployer_web_ready moved to v8x.clouds.common
+    # vdeployer-web helpers live in deployment_apps.common.
 
 
 async def _trigger_vdeployer_deploy(
@@ -794,7 +794,7 @@ async def _trigger_vdeployer_deploy(
     import httpx
     from vantage_sdk.workbench._vdeployer import get_vdeployer_web_url
 
-    from v8x.clouds.common import get_auth_headers
+    from v8x.deployment_apps.common import get_auth_headers
 
     console = ctx.obj.console
     vctx = deployment.vantage_cluster_ctx
@@ -887,7 +887,7 @@ async def _deploy_vantage_system_lxd(
     # Step 3: Wait for vdeployer-web to be ready via tunnel
     console.print("")
     console.print("[bold blue]Step 3: Waiting for vdeployer-web...[/bold blue]")
-    from v8x.clouds.common import wait_for_vdeployer_web_ready
+    from v8x.deployment_apps.common import wait_for_vdeployer_web_ready
 
     await wait_for_vdeployer_web_ready(
         ctx=ctx,

@@ -13,21 +13,13 @@
 
 import typer
 from typing_extensions import Annotated
-from vantage_sdk.cluster.crud import cluster_sdk
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.slurm import slurm_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    build_vdeployer_settings,
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -77,65 +69,36 @@ async def delete_slurm_cluster(
             raise typer.Exit(0)
 
     try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-        vdeployer_settings = await build_vdeployer_settings(ctx, cluster)
-
-        vdeployer_url = get_vdeployer_web_url(
-            client_id=cluster.client_id,
-            vantage_url=ctx.obj.settings.vantage_url,
-        )
-        url = f"{vdeployer_url}/slurm-cluster/{name}"
-
-        request_data = {
-            "settings": vdeployer_settings,
-        }
-
         console.print(f"[dim]Deleting Slurm cluster '{name}' on '{cluster_name}'...[/dim]")
-
-        async with get_http_client() as client:
-            response = await client.request(
-                "DELETE",
-                url,
-                json=request_data,
-                headers=get_auth_headers(ctx),
-            )
+        result = await slurm_sdk.delete(ctx, cluster_name=cluster_name, name=name)
+        response = result.response
 
         if response.status_code == 200:
-            result = response.json()
+            data = response.json() or {}
             console.print(
-                f"[green]✓[/green] {result.get('message', f'Slurm cluster {name} deletion started')}"
+                f"[green]✓[/green] {data.get('message', f'Slurm cluster {name} deletion started')}"
             )
         elif response.status_code == 404:
-            result = response.json()
+            data = response.json() or {}
             console.print(
-                f"[yellow]Not found:[/yellow] {result.get('detail', 'Cluster not found')}"
+                f"[yellow]Not found:[/yellow] {data.get('detail', 'Cluster not found')}"
             )
         elif response.status_code == 409:
-            result = response.json()
+            data = response.json() or {}
             console.print(
-                f"[yellow]Warning:[/yellow] {result.get('detail', 'A task is already running')}"
+                f"[yellow]Warning:[/yellow] {data.get('detail', 'A task is already running')}"
             )
         else:
             console.print(
                 f"[red]Error:[/red] vdeployer-web returned {response.status_code}: {response.text}"
             )
 
-        # Remove the cluster registration from vantage-api. Run regardless of
-        # the vdeployer-web result: in orphaned-state recovery the k8s workload
-        # may already be gone (404/409) while the DB record lingers, and the
-        # user's expectation is that `cluster slurm delete` always clears both.
-        console.print(
-            f"[dim]Removing Slurm cluster '{name}' registration from vantage-api...[/dim]"
-        )
-        try:
-            api_result = await cluster_sdk.delete_slurm_cluster_in_k8s(
-                ctx, name=name, parent_cluster_name=cluster_name
-            )
+        if result.api_result:
             console.print(
-                f"[green]✓[/green] {api_result.get('message', 'API registration removed')}"
+                f"[green]✓[/green] {result.api_result.get('message', 'API registration removed')}"
             )
-        except Exception as api_err:
-            console.print(f"[red]Error:[/red] vantage-api deletion failed: {api_err}")
+        if result.api_error:
+            console.print(f"[red]Error:[/red] vantage-api deletion failed: {result.api_error}")
 
     except Abort:
         raise

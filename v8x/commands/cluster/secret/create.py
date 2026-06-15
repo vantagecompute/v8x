@@ -3,23 +3,16 @@
 """Create secret command."""
 
 import json
-from typing import Any
 
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
+from vantage_sdk.workbench.secret import secret_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
-
-from ._helpers import (
-    get_auth_headers,
-    get_cluster_with_creds,
-    get_http_client,
-    get_vdeployer_web_url,
-)
 
 
 @handle_abort
@@ -58,42 +51,22 @@ async def create_secret(
     """
     console = ctx.obj.console
 
-    body: dict[str, Any] = {"name": name, "type": secret_type}
-
-    if secret_type == "huggingface":
-        if not value:
-            raise Abort("--value required for huggingface secret", subject="Missing Input")
-        body["value"] = value
-    elif secret_type == "s3":
-        if not access_key_id or not secret_access_key or not region:
-            raise Abort(
-                "--access-key-id, --secret-access-key, --region required for s3",
-                subject="Missing Input",
-            )
-        s3_payload: dict[str, Any] = {
-            "access_key_id": access_key_id,
-            "secret_access_key": secret_access_key,
-            "region": region,
-        }
-        if endpoint_url:
-            s3_payload["endpoint_url"] = endpoint_url
-        body["value"] = s3_payload
-    else:
-        raise Abort(
-            f"Unknown type: {secret_type}. Use huggingface or s3.", subject="Invalid Input"
+    try:
+        console.print(f"[dim]Creating {secret_type} secret '{name}'...[/dim]")
+        response = await secret_sdk.create(
+            ctx,
+            cluster_name=cluster_name,
+            name=name,
+            secret_type=secret_type,
+            value=value,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
+            region=region,
+            endpoint_url=endpoint_url,
         )
 
-    try:
-        cluster = await get_cluster_with_creds(ctx, cluster_name)
-        url = f"{get_vdeployer_web_url(cluster.client_id, ctx.obj.settings.vantage_url)}/secrets"
-
-        console.print(f"[dim]Creating {secret_type} secret '{name}'...[/dim]")
-
-        async with get_http_client() as client:
-            response = await client.post(url, json=body, headers=get_auth_headers(ctx))
-
         if response.status_code == 201:
-            data = response.json()
+            data = response.json() or {}
             if ctx.obj.json_output:
                 print(json.dumps(data, default=str))
             else:
@@ -102,10 +75,8 @@ async def create_secret(
         elif response.status_code == 409:
             console.print(f"[yellow]Secret '{name}' already exists[/yellow]")
         else:
-            try:
-                detail = response.json().get("detail", response.text)
-            except Exception:
-                detail = response.text
+            data = response.json() or {}
+            detail = data.get("detail", response.text) if isinstance(data, dict) else response.text
             console.print(f"[red]Error:[/red] {response.status_code}: {detail}")
 
     except Abort:
