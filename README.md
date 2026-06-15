@@ -33,36 +33,19 @@ Use the CLI for high-level workflows such as:
 
 ## Getting Started
 
-### Option 1: Install from PyPI
-
+1) Login in Vantage
 ```bash
-pip install v8x
-
-v8x login
+uvx v8x login
 ```
 
-### Option 2: Install from Source
-
+2) Create a Cloud Account that Represents your On-Premises infrastructure.
 ```bash
-git clone https://github.com/vantagecompute/v8x.git
-cd v8x
-uv sync
-
-uv run v8x login
+uvx v8x cloud account create mydatacenter-west --provider on_prem
 ```
 
-## Deploy your First Slurm Cluster using a Multipass VM
-
-1. Add a cloud account
-
+3) Create your first cluster using multipass (works on arm64 and amd64)
 ```bash
-uv run v8x cloud account create mydatacenter-west --provider on_prem
-```
-
-2. Create the cluster
-
-```bash
-uv run v8x cluster create slurm-multipass-demo-james \
+uvx v8x cluster create slurm-multipass-demo-james \
   --app slurm-multipass \
   --cloud-account-name mydatacenter-west \
   --cluster-type slurm \
