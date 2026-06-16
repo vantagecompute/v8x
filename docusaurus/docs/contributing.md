@@ -7,12 +7,7 @@ Short guide for working on v8x.
 
 ## Environment Setup
 
-```bash
-git clone https://github.com/vantagecompute/v8x.git
-cd v8x
-pip install uv
-uv sync
-```
+Use the [Installation Guide](./installation) for CLI installation. For repository development, follow the root project setup instructions in the source tree.
 
 Run tests:
 

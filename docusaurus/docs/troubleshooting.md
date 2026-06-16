@@ -24,7 +24,8 @@ v8x login   # re-authenticate if still failing
 
 ```bash
 v8x profile list
-v8x profile create dev --activate
+v8x profile create dev --vantage-url https://app.vantagecompute.ai
+v8x profile use dev
 ```
 
 ## JSON Output / Parsing Errors
