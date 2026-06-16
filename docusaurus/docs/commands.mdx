@@ -624,11 +624,11 @@ This document provides a comprehensive reference for all available CLI commands 
 
      Create a cluster with an app:
      $ v8x cluster create mycluster --cloud-account-id 16 --app
- slurm-lxd-localhost
+ vantage-system
 
      Create a cluster with an app and custom config:
      $ v8x cluster create mycluster --cloud-account-id 16 --app
- slurm-lxd-localhost --app-config 'jupyterhub_enabled=false'
+ vantage-system --app-config 'jupyterhub_enabled=false'
 
      Create a cluster with settings from a YAML file:
      $ v8x cluster create mycluster --cloud-account-id 16 --settings-file
@@ -640,7 +640,7 @@ This document provides a comprehensive reference for all available CLI commands 
 
      Resume app deployment on an existing cluster:
      $ v8x cluster create mycluster --cloud-account-id 16 --app
- slurm-lxd-localhost --resume
+ vantage-system --resume
 
      Create a Multipass Slurm cluster with resource/image overrides:
      $ v8x cluster create mycluster --cloud-account my-localhost --app
@@ -4075,10 +4075,6 @@ This document provides a comprehensive reference for all available CLI commands 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --vantage-url                              TEXT     [default:                │
 │                                                     https://app.vantagecomp… │
-│ --oidc-client-id                           TEXT     [default: default]       │
-│ --oidc-max-poll-time                       INTEGER  [default: 300]           │
-│ --force                   --no-force                [default: no-force]      │
-│ --activate                --no-activate             [default: no-activate]   │
 │ --json                -j                            Output in JSON format    │
 │ --verbose             -v                            Enable verbose terminal  │
 │                                                     output                   │

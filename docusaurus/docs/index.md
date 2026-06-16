@@ -10,21 +10,7 @@ slug: /
 
 ### Quick Start
 
-Install from PyPI with `uv`:
-
-```bash
-uv tool install v8x
-v8x --help
-```
-
-Or run from source:
-
-```bash
-git clone https://github.com/vantagecompute/v8x
-cd v8x
-uv sync
-uv run v8x --help
-```
+Start with the [Installation Guide](./installation), then authenticate and choose the Vantage environment you want to work with.
 
 ### Authenticate
 

@@ -3,21 +3,9 @@ title: Usage Examples
 description: Practical examples of using v8x
 ---
 
-## 1. Install v8x
+## 1. Authenticate
 
-```bash
-uv tool install v8x
-v8x version
-```
-
-When working from a source checkout, use `uv run`:
-
-```bash
-uv sync
-uv run v8x --help
-```
-
-## 2. Authenticate
+Install and verify the CLI first with the [Installation Guide](./installation).
 
 ```bash
 v8x login
@@ -31,7 +19,7 @@ Add `--json` when you need automation-friendly output:
 v8x whoami --json | jq '.identity.email'
 ```
 
-## 3. Cloud Accounts
+## 2. Cloud Accounts
 
 Cloud accounts are the current deployment target abstraction. Create them with `v8x cloud account create`, then pass the account name or ID to `v8x cluster create`.
 
@@ -57,12 +45,12 @@ v8x cloud account list --json | jq '.[] | {name, provider}'
 
 Valid provider values are `aws`, `gcp`, `azure`, `on_prem`, `lxd`, and `microk8s`.
 
-## 4. Cluster Management
+## 3. Cluster Management
 
 ```bash
 # List clusters
 v8x cluster list
-v8x clusters --json | jq '.clusters | length'
+v8x cluster list --json | jq '.clusters | length'
 
 # Create a regular cluster from a cloud account name
 v8x cluster create prod-hpc --cloud-account aws-prod
@@ -83,7 +71,7 @@ v8x cluster create compute-multipass-00 \
 v8x cluster get compute-multipass-00 --json | jq '.cluster | {name,id,status}'
 ```
 
-## 5. Deployment Applications
+## 4. Deployment Applications
 
 ```bash
 # List bundled deployment applications
@@ -99,7 +87,7 @@ v8x app deployment delete <deployment-id> --force
 
 Current built-in local applications include `slurm-multipass` for `on_prem` and `vantage-system` / `juju-ext` for `lxd`.
 
-## 6. Network and Storage
+## 5. Network and Storage
 
 ```bash
 # Create a PersistentVolumeClaim in a cluster namespace
@@ -115,7 +103,7 @@ v8x network create cluster-net --cidr 10.0.0.0/16
 v8x network list --json | jq '.networks[] | {name, cidr}'
 ```
 
-## 7. Job Management Workflow
+## 6. Job Management Workflow
 
 ```bash
 # Create a reusable script record
@@ -139,7 +127,7 @@ v8x job submission get 789 --json | jq '.status'
 
 For richer template or submission payloads, pass `--json-file ./payload.json` to the template or submission create command.
 
-## 8. Team Collaboration
+## 7. Team Collaboration
 
 ```bash
 # Create team
@@ -156,17 +144,18 @@ v8x team set-role ml-research alice@company.com admin
 v8x team list-members ml-research
 ```
 
-## 9. Profiles
+## 8. Profiles
 
 ```bash
 v8x profile list
-v8x profile create staging --activate
+v8x profile create staging --vantage-url https://app.staging.vantagecompute.ai
+v8x profile use staging
 v8x login --profile staging
 ```
 
 Use `--profile <name>` on any command to target a specific environment.
 
-## 10. Piping and Automation
+## 9. Piping and Automation
 
 ```bash
 # Email of current authenticated user
@@ -178,10 +167,10 @@ mapfile -t clusters < <(v8x cluster list --json | jq -r '.clusters[].name')
 printf 'Found %d clusters\n' "${#clusters[@]}"
 
 # Summarize clusters
-v8x clusters --json | jq '{count: (.clusters | length), names: [.clusters[].name]}'
+v8x cluster list --json | jq '{count: (.clusters | length), names: [.clusters[].name]}'
 ```
 
-## 11. Handling Errors
+## 10. Handling Errors
 
 Add `-v` to surface debug logs:
 
