@@ -302,7 +302,11 @@ SH"""
             f"""bash <<'SH'
 set -euo pipefail
 
-SNAP_ARCH=$(dpkg --print-architecture)
+case "$(uname -m)" in
+    x86_64)  SNAP_ARCH=amd64 ;;
+    aarch64) SNAP_ARCH=arm64 ;;
+    *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;;
+esac
 SNAP_NAME={shlex.quote(VANTAGE_AGENT_SNAP_NAME)}
 SNAP_BASE_URL={shlex.quote(VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL)}
 SNAP_URL="$SNAP_BASE_URL/$SNAP_ARCH/latest/$SNAP_NAME.snap"

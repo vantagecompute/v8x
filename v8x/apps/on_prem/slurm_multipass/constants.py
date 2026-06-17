@@ -31,8 +31,6 @@ def generate_sssd_conf(org_id: str, ldap_uri: str, sssd_binder_password: str) ->
     search_base = f"ou={org_id},ou=organizations,dc=vantagecompute,dc=ai"
     user_search_base = f"ou=People,{search_base}"
     bind_dn = f"cn=sssd-binder,ou=ServiceAccounts,{search_base}"
-    access_filter = f"(memberOf=cn=slurm-users,ou=Groups,{search_base})"
-
     filter_users = (
         "root,ubuntu,slurm,slurmrestd,daemon,bin,sys,sync,games,man,lp,mail,news,"
         "uucp,proxy,www-data,backup,list,irc,gnats,nobody,systemd-network,"
@@ -70,7 +68,8 @@ debug_level = 7
 id_provider      = ldap
 auth_provider    = ldap
 chpass_provider  = ldap
-access_provider  = ldap
+access_provider  = simple
+simple_allow_groups = slurm-users
 sudo_provider    = ldap
 
 ldap_uri               = {ldap_uri}
@@ -82,8 +81,6 @@ ldap_sudo_search_base  = ou=Groups,{search_base}
 ldap_default_bind_dn      = {bind_dn}
 ldap_default_authtok      = {sssd_binder_password}
 ldap_default_authtok_type = password
-
-ldap_access_filter = {access_filter}
 
 ldap_user_ssh_public_key = sshPublicKey
 
@@ -98,6 +95,7 @@ ldap_user_fullname = cn
 
 ldap_group_object_class = groupOfNames
 ldap_group_member       = member
+ldap_group_nesting_level = 0
 ldap_group_name         = cn
 ldap_group_gid_number   = gidNumber
 
@@ -114,8 +112,8 @@ entry_negative_timeout = 30
 
 refresh_expired_interval = 300
 ldap_connection_expire_timeout = 900
-ldap_network_timeout = 5
-ldap_opt_timeout     = 10
+ldap_network_timeout = 15
+ldap_opt_timeout     = 120
 
 ldap_schema = rfc2307bis
 """
