@@ -29,7 +29,7 @@ dependencies = [
     "pyopenssl>=25.3.0",
     "qrcode>=8.0.0",
     "graphifyy>=0.8.26",
-    "vantage-sdkpy>=0.1.9",
+    "vantage-sdkpy>=0.1.10",
 ]
 
 [tool.hatch.build.targets.wheel]
