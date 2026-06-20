@@ -466,10 +466,18 @@ async def token(
     id_token: bool = typer.Option(
         False, "--id", help="Print the ID token instead of the access token"
     ),
+    refresh: bool = typer.Option(
+        False,
+        "--refresh",
+        help="Use the refresh token to request a new token before printing",
+    ),
 ):
     """Print the current access token to the terminal."""
     token_set = load_tokens_from_cache(ctx.obj.profile)
-    token_set = refresh_token_if_needed(ctx.obj.profile, token_set)
+    if refresh is True:
+        token_set = refresh_token_if_needed(ctx.obj.profile, token_set, force=True)
+    else:
+        token_set = refresh_token_if_needed(ctx.obj.profile, token_set)
     selected_token = token_set.id_token if id_token else token_set.access_token
     if selected_token is None:
         raise Abort(
