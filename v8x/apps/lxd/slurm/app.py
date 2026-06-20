@@ -229,15 +229,16 @@ def _run_vantage_provider_provision(  # noqa: C901
         lxd_client_cert,
         "--lxd-client-key",
         lxd_client_key,
-        "--default-storage-pool",
-        # Provider auto-detects when empty (lxd.go --default-storage-pool default "").
-        vantage_cluster_ctx.settings.get("autoscaler_lxd_default_storage_pool", ""),
-        "--network-bridge",
-        # Mirror the provider's --network-bridge default ("br0").
-        vantage_cluster_ctx.settings.get("autoscaler_lxd_default_network_bridge", "br0"),
+        "--network",
+        vantage_cluster_ctx.settings["autoscaler_lxd_default_network"],
         "--project",
-        vantage_cluster_ctx.settings.get("lxd_project_name", "vantage-system"),
+        vantage_cluster_ctx.settings["lxd_project_name"],
     ]
+
+    if default_storage_pool := vantage_cluster_ctx.settings.get(
+        "autoscaler_lxd_default_storage_pool"
+    ):
+        cmd.extend(["--default-storage-pool", default_storage_pool])
 
     # Get control plane instance type from settings (from default_control_node_groups)
     control_node_groups = vantage_cluster_ctx.settings.get("default_control_node_groups", [])
