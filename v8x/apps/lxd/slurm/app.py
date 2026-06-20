@@ -205,16 +205,15 @@ def _run_vantage_provider_provision(  # noqa: C901
     lxd_server_port = urllib.parse.urlparse(ctx.obj.cloud_config_metadata["lxd_server_url"]).port
     lxd_client_cert = ctx.obj.cloud_config_metadata["lxd_client_cert"]
     lxd_client_key = ctx.obj.cloud_config_metadata["lxd_client_key"]
+    tag_version = str(vantage_cluster_ctx.settings.get("tag_version") or "0.1")
 
     # Use pre-generated client cert/key from CloudConfig (registered during cloud create)
     cmd = [
         str(binary_path),
         "lxd",
         "provision",
-        "--vdeployer-web-chart-version",
-        vantage_cluster_ctx.settings.get("vdeployer_web_chart_version", "latest"),
-        "--vdeployer-istio-base-chart-version",
-        vantage_cluster_ctx.settings.get("vdeployer_istio_base_chart_version", "latest"),
+        "--tag-version",
+        tag_version,
         "--cluster-client-id",
         vantage_cluster_ctx.client_id,
         "--cluster-client-secret",
@@ -234,6 +233,12 @@ def _run_vantage_provider_provision(  # noqa: C901
         "--project",
         vantage_cluster_ctx.settings["lxd_project_name"],
     ]
+
+    if web_chart_version := vantage_cluster_ctx.settings.get("vdeployer_web_chart_version"):
+        cmd.extend(["--vdeployer-web-chart-version", str(web_chart_version)])
+
+    if istio_base_chart_version := vantage_cluster_ctx.settings.get("vdeployer_istio_base_chart_version"):
+        cmd.extend(["--vdeployer-istio-base-chart-version", str(istio_base_chart_version)])
 
     if default_storage_pool := vantage_cluster_ctx.settings.get(
         "autoscaler_lxd_default_storage_pool"
