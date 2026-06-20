@@ -224,32 +224,38 @@ def is_token_expired(token: str, buffer_seconds: int = TOKEN_REFRESH_THRESHOLD_S
         return True  # Consider token expired if we can't parse it
 
 
-def refresh_token_if_needed(profile: str, token_set: TokenSet) -> TokenSet:
+def refresh_token_if_needed(profile: str, token_set: TokenSet, *, force: bool = False) -> TokenSet:
     """Check if the access token is expired and refresh it if needed.
 
     Args:
         profile: Profile name for token caching
         token_set: Current token set
+        force: Refresh the token even if the current access token is still valid
 
     Returns:
         Updated token set with refreshed tokens if refresh was needed
     """
-    if not token_set.access_token:
+    if not token_set.access_token and not force:
         logger.debug("No access token available")
         return token_set
 
-    if not is_token_expired(token_set.access_token):
+    if token_set.access_token and not force and not is_token_expired(token_set.access_token):
         logger.debug("Access token is still valid")
         return token_set
 
-    logger.debug("Access token is expired, attempting refresh")
+    if force:
+        logger.debug("Forcing access token refresh")
+    else:
+        logger.debug("Access token is expired, attempting refresh")
 
     if not token_set.refresh_token:
         logger.debug("No refresh token available")
         raise Abort(
-            "The access token is expired and no refresh token is available. Please log in again.",
-            subject="Token expired",
-            log_message="Token expired and no refresh token available",
+            "No refresh token is available. Please log in again.",
+            subject="Refresh token unavailable" if force else "Token expired",
+            log_message="Token refresh requested but no refresh token is available"
+            if force
+            else "Token expired and no refresh token available",
         )
 
     try:
