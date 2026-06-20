@@ -529,6 +529,11 @@ async def create_cluster(  # noqa: C901
 
                 # Use setdefault for values that may be overridden by the user settings file.
                 vdeployer_settings_dict.setdefault("lxd_project_name", "vantage-system")
+                # Provider-aligned defaults (lxd.go): empty pool => auto-detect,
+                # network bridge defaults to "br0". Without these the provision
+                # step KeyErrors when the user settings file omits them.
+                vdeployer_settings_dict.setdefault("autoscaler_lxd_default_storage_pool", "")
+                vdeployer_settings_dict.setdefault("autoscaler_lxd_default_network_bridge", "br0")
                 vdeployer_settings_dict.setdefault(
                     "autoscaler_cloud_init_existing_cluster_config_secret",
                     "vantage-cluster-config",
