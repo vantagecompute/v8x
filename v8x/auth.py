@@ -16,6 +16,7 @@ import base64
 import datetime
 import hashlib
 import inspect
+import io
 import json
 import logging
 import secrets
@@ -24,11 +25,14 @@ from textwrap import dedent
 from typing import Any, Callable, Union
 
 import httpx
+import qrcode
 import snick
 import typer
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError
 from pydantic import ValidationError
+from rich.console import Console
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from vantage_sdk.exceptions import Abort
 
@@ -42,7 +46,6 @@ from v8x.constants import (
     TOKEN_REFRESH_THRESHOLD_SECONDS,
     USER_CONFIG_FILE,
 )
-from v8x.render import terminal_message
 from v8x.schemas import CliContext, DeviceCodeData, IdentityData, Persona, TokenSet
 
 logger = logging.getLogger(__name__)
@@ -491,16 +494,25 @@ async def fetch_auth_tokens(ctx: CliContext) -> TokenSet:
     )
 
     max_poll_time = 5 * 60  # 5 minutes
-    terminal_message(
-        f"""
-        To complete login, please open the following link in a browser:
 
-          {device_code_data.verification_uri_complete}
+    # Build panel with QR code and login link
+    qr = qrcode.QRCode()
+    qr.add_data(device_code_data.verification_uri_complete)
+    buf = io.StringIO()
+    qr.print_ascii(out=buf)
+    qr_text = buf.getvalue().rstrip("\n")
 
-        Waiting up to {max_poll_time / 60} minutes for you to complete the process...
-        """,
-        subject="Waiting for login",
+    panel_message = (
+        "To complete login, scan this QR code:\n\n"
+        f"{qr_text}\n\n"
+        "OR open the following link in your browser:\n\n"
+        f"  {device_code_data.verification_uri_complete}\n\n"
+        f"Waiting up to {max_poll_time / 60} minutes for you to complete the process..."
     )
+
+    (console or Console()).print()
+    (console or Console()).print(Panel(panel_message, title="Waiting for login", padding=(1, 2)))
+    (console or Console()).print()
 
     # Calculate timeout and start time
     start_time = datetime.datetime.now()

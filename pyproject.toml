@@ -27,7 +27,7 @@ dependencies = [
     "anyio>=4.12.1",
     "pyyaml>=6.0.3",
     "pyopenssl>=25.3.0",
-    "graphifyy>=0.8.26",
+    "qrcode>=8.0.0",
     "vantage-sdkpy>=0.1.10",
 ]
 
