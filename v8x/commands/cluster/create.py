@@ -527,21 +527,16 @@ async def create_cluster(  # noqa: C901
                     cloud_account_attributes["lxd_server_url"]
                 ).hostname
 
-                # Use setdefault for values that may be overridden by the user settings file.
-                vdeployer_settings_dict.setdefault("lxd_project_name", "vantage-system")
-                # Provider-aligned defaults (lxd.go): empty pool => auto-detect,
-                # network bridge defaults to "br0". Without these the provision
-                # step KeyErrors when the user settings file omits them.
-                vdeployer_settings_dict.setdefault("autoscaler_lxd_default_storage_pool", "")
-                vdeployer_settings_dict.setdefault("autoscaler_lxd_default_network_bridge", "br0")
-                vdeployer_settings_dict.setdefault(
-                    "autoscaler_cloud_init_existing_cluster_config_secret",
-                    "vantage-cluster-config",
-                )
-                vdeployer_settings_dict.setdefault(
-                    "autoscaler_lxd_vault_existing_secret",
-                    "autoscaler-vault-config",
-                )
+                required_settings = ["lxd_project_name", "autoscaler_lxd_default_network"]
+                missing_settings = [
+                    key for key in required_settings if not vdeployer_settings_dict.get(key)
+                ]
+                if missing_settings:
+                    raise Abort(
+                        "Missing required LXD settings: " + ", ".join(missing_settings),
+                        subject="Missing LXD Settings",
+                        log_message=f"Missing required LXD settings: {missing_settings}",
+                    )
 
                 if "local_registry" in cloud_account_attributes:
                     # Strip http:// or https:// prefix from local_registry
@@ -703,11 +698,12 @@ async def deploy_app_to_cluster(
 
         if app is None:
             available_apps_list = deployment_app_sdk.list()
-            ctx.obj.console.print(f"[bold red]✗ App '{app_name}' not found[/bold red]")
-            ctx.obj.console.print(
-                f"[dim]Available apps: {', '.join(a.name for a in available_apps_list)}[/dim]"
+            available_apps = ", ".join(a.name for a in available_apps_list)
+            raise Abort(
+                f"App '{app_name}' not found. Available apps: {available_apps}",
+                subject="App Not Found",
+                log_message=f"App not found for cluster deploy: {app_name}",
             )
-            return
 
         logger.info(
             f"[bold blue]Deploying app '{app_name}' to cluster '{cluster.name}'...[/bold blue]"
@@ -723,11 +719,10 @@ async def deploy_app_to_cluster(
 
             # Check if the function returned an error exit code
             if isinstance(result, typer.Exit) and result.exit_code != 0:
-                logger.error(
-                    f"[bold red]✗ App '{app_name}' deployment failed (exit code {result.exit_code})[/bold red]"
-                )
-                logger.info(
-                    "[dim]The cluster was created successfully, but app deployment encountered an error.[/dim]"
+                raise Abort(
+                    f"App '{app_name}' deployment failed with exit code {result.exit_code}.",
+                    subject="App Deployment Failed",
+                    log_message=f"App deployment failed: {app_name} exit={result.exit_code}",
                 )
             elif isinstance(result, typer.Exit) and result.exit_code == 0:
                 logger.info(f"[bold green]✓ App '{app_name}' deployed successfully![/bold green]")
@@ -735,13 +730,14 @@ async def deploy_app_to_cluster(
                 # No exit code returned, assume success
                 logger.info(f"[bold green]✓ App '{app_name}' deployment completed![/bold green]")
         else:
-            logger.warning(
-                f"[bold yellow]! App '{app_name}' does not support automatic deployment[/bold yellow]"
-            )
-            logger.info(
-                "[dim]You can manually deploy this app using the appropriate commands.[/dim]"
+            raise Abort(
+                f"App '{app_name}' does not support automatic deployment.",
+                subject="Unsupported App Deployment",
+                log_message=f"App does not support automatic deployment: {app_name}",
             )
 
+    except Abort:
+        raise
     except Exception as e:
         import traceback
 
@@ -749,4 +745,8 @@ async def deploy_app_to_cluster(
         logger.error(f"[red]{type(e).__name__}: {e}[/red]")
         if getattr(ctx.obj, "verbose", False):
             logger.error(f"[dim]{traceback.format_exc()}[/dim]")
-        logger.error("[dim]The cluster was created successfully, but app deployment failed.[/dim]")
+        raise Abort(
+            f"Failed to deploy app '{app_name}'. Error details: {type(e).__name__}: {e}",
+            subject="App Deployment Failed",
+            log_message=f"Failed to deploy app {app_name}: {e}",
+        ) from e
