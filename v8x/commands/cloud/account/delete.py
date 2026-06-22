@@ -86,7 +86,7 @@ async def delete_command(
         ctx.obj.formatter.render_delete(
             resource_name="Cloud Account",
             resource_id=str(account_id),
-            message=f"Cloud account '{account.name}' has been deleted.",
+            success_message=f"Cloud account '{account.name}' has been deleted.",
         )
 
     except Abort:
