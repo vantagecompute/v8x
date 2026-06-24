@@ -105,6 +105,10 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
     parsed = YAML().load(config)
     runcmd = parsed["runcmd"]
 
+    assert parsed["package_update"] is False
+    assert parsed["package_upgrade"] is False
+    assert parsed["packages"] is None
+
     # runcmd[0]: slurm_install.sh (no SSSD params — config via write_files)
     install_command = runcmd[0]
     assert "slurm_install.sh --full-init --cluster-name demo" in install_command
@@ -170,4 +174,9 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
     assert "snap install --classic --dangerous /tmp/${SNAP_NAME}.snap" in agent_command
     assert f"SNAP_BASE_URL={VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL}" in agent_command
     assert 'SNAP_URL="$SNAP_BASE_URL/$SNAP_ARCH/latest/$SNAP_NAME.snap"' in agent_command
+    assert "dpkg --print-architecture" in agent_command
+    assert "rpm --eval '%{_arch}'" in agent_command
+    assert "SNAP_ARCH=amd64" in agent_command
+    assert "SNAP_ARCH=arm64" in agent_command
+    assert "snap wait system seed.loaded" in agent_command
     assert not any("jobbergate-agent" in command and "snap set" in command for command in runcmd)
