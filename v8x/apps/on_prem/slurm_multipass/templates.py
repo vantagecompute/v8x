@@ -159,15 +159,26 @@ elif command -v authselect >/dev/null 2>&1; then
     systemctl enable --now oddjobd.service
 fi
 
+systemctl enable --now sssd.service
+systemctl restart sssd.service
+systemctl restart systemd-logind
+
+# Warm SSSD cache before restarting sshd so first SSH login hits warm cache.
+# Run "id" for each slurm-users member in parallel to trigger initgroups
+# and cache all user-to-group mappings. sshd restarts after this completes,
+# so users cannot SSH until the cache is ready.
+sleep 2
+members=$(getent group slurm-users 2>/dev/null | cut -d: -f4 | tr ',' ' ')
+for user in $members; do
+    id "$user" >/dev/null 2>&1 &
+done
+wait
+
 if systemctl cat sshd.service >/dev/null 2>&1; then
     systemctl restart sshd.service
 elif systemctl cat ssh.service >/dev/null 2>&1; then
     systemctl restart ssh.service
 fi
-
-systemctl enable --now sssd.service
-systemctl restart sssd.service
-systemctl restart systemd-logind
 SH""",
         ]
 

@@ -31,7 +31,6 @@ def generate_sssd_conf(org_id: str, ldap_uri: str, sssd_binder_password: str) ->
     search_base = f"ou={org_id},ou=organizations,dc=vantagecompute,dc=ai"
     user_search_base = f"ou=People,{search_base}"
     bind_dn = f"cn=sssd-binder,ou=ServiceAccounts,{search_base}"
-    access_filter = f"(memberOf=cn=slurm-users,ou=Groups,{search_base})"
 
     filter_users = (
         "root,ubuntu,slurm,slurmrestd,daemon,bin,sys,sync,games,man,lp,mail,news,"
@@ -63,6 +62,8 @@ filter_groups = {filter_groups}
 debug_level = 7
 offline_credentials_expiration = 60
 reconnection_retries = 3
+pam_id_timeout = 300
+pam_initgroups_scheme = never
 
 [domain/vantagecompute.ai]
 debug_level = 7
@@ -70,7 +71,7 @@ debug_level = 7
 id_provider      = ldap
 auth_provider    = ldap
 chpass_provider  = ldap
-access_provider  = ldap
+access_provider  = simple
 sudo_provider    = ldap
 
 ldap_uri               = {ldap_uri}
@@ -83,7 +84,7 @@ ldap_default_bind_dn      = {bind_dn}
 ldap_default_authtok      = {sssd_binder_password}
 ldap_default_authtok_type = password
 
-ldap_access_filter = {access_filter}
+simple_allow_groups = slurm-users
 
 ldap_user_ssh_public_key = sshPublicKey
 
@@ -100,6 +101,7 @@ ldap_group_object_class = groupOfNames
 ldap_group_member       = member
 ldap_group_name         = cn
 ldap_group_gid_number   = gidNumber
+ldap_group_nesting_level = 0
 
 ldap_user_memberof = memberOf
 
