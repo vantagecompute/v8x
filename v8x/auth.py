@@ -495,20 +495,23 @@ async def fetch_auth_tokens(ctx: CliContext) -> TokenSet:
 
     max_poll_time = 5 * 60  # 5 minutes
 
-    # Build panel with QR code and login link
-    qr = qrcode.QRCode()
-    qr.add_data(device_code_data.verification_uri_complete)
-    buf = io.StringIO()
-    qr.print_ascii(out=buf)
-    qr_text = buf.getvalue().rstrip("\n")
+    if ctx.show_qr:
+        qr = qrcode.QRCode(border=2)
+        qr.add_data(device_code_data.verification_uri_complete)
+        buf = io.StringIO()
+        qr.print_ascii(out=buf)
+        qr_text = buf.getvalue().rstrip("\n")
 
-    panel_message = (
-        "To complete login, scan this QR code:\n\n"
-        f"{qr_text}\n\n"
-        "OR open the following link in your browser:\n\n"
-        f"  {device_code_data.verification_uri_complete}\n\n"
-        f"Waiting up to {max_poll_time / 60} minutes for you to complete the process..."
-    )
+        panel_message = (
+            f"{qr_text}\n\n"
+            f"Waiting up to {max_poll_time / 60} minutes for you to complete the process..."
+        )
+    else:
+        panel_message = (
+            "To complete login, open the following link in a browser:\n\n"
+            f"  {device_code_data.verification_uri_complete}\n\n"
+            f"Waiting up to {max_poll_time / 60} minutes for you to complete the process..."
+        )
 
     (console or Console()).print()
     (console or Console()).print(Panel(panel_message, title="Waiting for login", padding=(1, 2)))
