@@ -45,6 +45,25 @@ v8x cloud account create local-lxd --provider lxd \
 
 Continue to the [LXD and Juju guide](./localhost/charmed-hpc).
 
+## Charmed HPC Slurm Cluster (Juju)
+
+Use `slurm-juju` to deploy a full Charmed HPC Slurm cluster into an **existing** Juju controller and
+model. It deploys the vantage-slurm-charm-operators bundle (control plane, compute, accounting,
+identity, shared storage, and observability) and wires the required Vantage secret automatically.
+
+```bash
+sudo snap install juju
+juju bootstrap localhost local
+juju add-model v8x-1
+v8x cloud account create local-juju --provider on_prem
+v8x cluster create charmed-hpc-dev \
+  --cloud-account local-juju \
+  --app slurm-juju \
+  --options controller=local,model=v8x-1
+```
+
+Continue to the [Charmed HPC (Juju) guide](./localhost/slurm-juju).
+
 ## MicroK8s
 
 Use [MicroK8s](https://canonical.com/microk8s) when you want a local Kubernetes substrate.
