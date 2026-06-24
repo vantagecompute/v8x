@@ -93,6 +93,7 @@ class CliContext(BaseModel):
     profile: str = "default"
     verbose: bool = False
     json_output: bool = False
+    show_qr: bool = False
     formatter: Optional[Any] = None  # UniversalOutputFormatter (avoid circular import)
     persona: Optional[Persona] = None
     client: Optional[httpx.AsyncClient] = None

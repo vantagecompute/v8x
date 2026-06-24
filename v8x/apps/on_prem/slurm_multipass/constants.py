@@ -31,7 +31,6 @@ def generate_sssd_conf(org_id: str, ldap_uri: str, sssd_binder_password: str) ->
     search_base = f"ou={org_id},ou=organizations,dc=vantagecompute,dc=ai"
     user_search_base = f"ou=People,{search_base}"
     bind_dn = f"cn=sssd-binder,ou=ServiceAccounts,{search_base}"
-    access_filter = f"(memberOf=cn=slurm-users,ou=Groups,{search_base})"
 
     filter_users = (
         "root,ubuntu,slurm,slurmrestd,daemon,bin,sys,sync,games,man,lp,mail,news,"
@@ -63,6 +62,8 @@ filter_groups = {filter_groups}
 debug_level = 7
 offline_credentials_expiration = 60
 reconnection_retries = 3
+pam_id_timeout = 300
+pam_initgroups_scheme = never
 
 [domain/vantagecompute.ai]
 debug_level = 7
@@ -70,7 +71,7 @@ debug_level = 7
 id_provider      = ldap
 auth_provider    = ldap
 chpass_provider  = ldap
-access_provider  = ldap
+access_provider  = simple
 sudo_provider    = ldap
 
 ldap_uri               = {ldap_uri}
@@ -83,7 +84,7 @@ ldap_default_bind_dn      = {bind_dn}
 ldap_default_authtok      = {sssd_binder_password}
 ldap_default_authtok_type = password
 
-ldap_access_filter = {access_filter}
+simple_allow_groups = slurm-users
 
 ldap_user_ssh_public_key = sshPublicKey
 
@@ -100,6 +101,7 @@ ldap_group_object_class = groupOfNames
 ldap_group_member       = member
 ldap_group_name         = cn
 ldap_group_gid_number   = gidNumber
+ldap_group_nesting_level = 0
 
 ldap_user_memberof = memberOf
 
@@ -143,8 +145,12 @@ _ARCH_MAP = {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "
 MULTIPASS_ARCH = _ARCH_MAP.get(platform.machine().lower(), "amd64")
 
 MULTIPASS_CLOUD_IMAGE_BASE_URL = (
-    f"https://vantage-artifacts.vantagecompute.ai/images/multipass-singlenode/{MULTIPASS_ARCH}"
+    "https://vantage-artifacts.vantagecompute.ai/images/multipass-singlenode"
 )
+
+MULTIPASS_MANIFEST_URL = f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/manifest.json"
+
+DEFAULT_IMAGE_CHANNEL = "latest"
 
 
 def get_multipass_cloud_image_name(operating_system: str) -> str:
@@ -158,9 +164,12 @@ def get_multipass_cloud_image_name(operating_system: str) -> str:
     return f"multipass-singlenode-{operating_system}-{MULTIPASS_ARCH}.img"
 
 
-def get_multipass_cloud_image_url(operating_system: str) -> str:
-    """Return the remote cloud image URL for a supported Multipass OS key."""
-    return f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/{get_multipass_cloud_image_name(operating_system)}"
+def get_multipass_cloud_image_url(operating_system: str, version: str) -> str:
+    """Return the remote cloud image URL for a supported Multipass OS key and version."""
+    return (
+        f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/{version}/{MULTIPASS_ARCH}/"
+        f"{get_multipass_cloud_image_name(operating_system)}"
+    )
 
 
 def get_multipass_cloud_image_dest(operating_system: str) -> Path:
@@ -177,8 +186,6 @@ def get_multipass_cloud_image_local(operating_system: str) -> Path:
         / get_multipass_cloud_image_name(operating_system)
     )
 
-
-MULTIPASS_CLOUD_IMAGE_URL = get_multipass_cloud_image_url(DEFAULT_MULTIPASS_OPERATING_SYSTEM)
 
 MULTIPASS_CLOUD_IMAGE_DEST = get_multipass_cloud_image_dest(DEFAULT_MULTIPASS_OPERATING_SYSTEM)
 

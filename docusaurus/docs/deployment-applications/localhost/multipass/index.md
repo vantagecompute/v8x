@@ -38,6 +38,7 @@ The `--options` flag is a comma-separated list for `slurm-multipass` only:
 | Key | Purpose |
 |---|---|
 | `operating_system` | One of `rockylinux9`, `rockylinux10`, `noble`, `resolute` |
+| `image_version` | Image channel (`latest`, `0.1`) or exact version (`0.1.5`). Defaults to `latest` |
 | `cpu` | Number of VM CPUs |
 | `mem` | Memory size in GiB |
 | `disk` | Disk size, such as `128G` |

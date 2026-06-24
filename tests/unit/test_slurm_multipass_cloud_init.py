@@ -49,11 +49,8 @@ def test_write_files_contain_sssd_config() -> None:
     assert "ou=org-123,ou=organizations" in sssd_file["content"]
     assert "ldap://ldap.example.com" in sssd_file["content"]
     assert "binder-secret" in sssd_file["content"]
-    assert (
-        "ldap_access_filter = (memberOf=cn=slurm-users,ou=Groups,ou=org-123,ou=organizations,dc=vantagecompute,dc=ai)"
-        in sssd_file["content"]
-    )
-    assert "ldap_access_filter = (|" not in sssd_file["content"]
+    assert "access_provider  = simple" in sssd_file["content"]
+    assert "simple_allow_groups = slurm-users" in sssd_file["content"]
     assert "refresh_expired_interval = 300" in sssd_file["content"]
     assert "ldap_user_memberof = memberOf" in sssd_file["content"]
 
@@ -104,6 +101,10 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
     config = CloudInitTemplate().generate_multipass_config(_context())
     parsed = YAML().load(config)
     runcmd = parsed["runcmd"]
+
+    assert parsed["package_update"] is False
+    assert parsed["package_upgrade"] is False
+    assert parsed["packages"] is None
 
     # runcmd[0]: slurm_install.sh (no SSSD params — config via write_files)
     install_command = runcmd[0]
@@ -170,4 +171,9 @@ def test_multipass_cloud_init_runcmd_structure() -> None:
     assert "snap install --classic --dangerous /tmp/${SNAP_NAME}.snap" in agent_command
     assert f"SNAP_BASE_URL={VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL}" in agent_command
     assert 'SNAP_URL="$SNAP_BASE_URL/$SNAP_ARCH/latest/$SNAP_NAME.snap"' in agent_command
+    assert "dpkg --print-architecture" in agent_command
+    assert "rpm --eval '%{_arch}'" in agent_command
+    assert "SNAP_ARCH=amd64" in agent_command
+    assert "SNAP_ARCH=arm64" in agent_command
+    assert "snap wait system seed.loaded" in agent_command
     assert not any("jobbergate-agent" in command and "snap set" in command for command in runcmd)

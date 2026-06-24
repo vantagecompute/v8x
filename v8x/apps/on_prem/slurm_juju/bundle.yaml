@@ -1,0 +1,302 @@
+# Vantage bare-metal Charmed HPC cluster — Topology A (standalone).
+#
+# Slurm 26.05 daemons run as **LXD virtual machines** (constraint virt-type=virtual-machine),
+# with MySQL accounting, SSSD/LDAP user resolution, a charm-managed NFS shared filesystem
+# (vantage-nfs-server: /data rw, /srv ro, /home rw shared, all on one VM — see step 0), and the
+# vantage-agent (bundled
+# auth-proxy + SSH tunnel + Keycloak-JWKS trust via the new `vantage-oidc` relation).
+#
+# Deploy:
+#   juju add-model hpc
+#   juju deploy ./bundle.yaml
+#
+# Common config is shared via YAML anchors (&edge / &noble / &slurm-vm).
+#
+# NOTE on charm sources: every vantage-* charm is pulled from Charmhub `edge`. Until they're all
+# published there, build locally with `just build` and swap each app's `charm:` + `channel:` for a
+# local path, e.g.  charm: ./charms/vantage-agent/vantage-agent_amd64.charm  (arm64: ..._arm64.charm).
+# Publishing is arch-matrixed in .github/workflows/release.yaml (amd64 + arm64, native runners).
+#
+# === Deploy steps (all charm-managed; the only required one is the shared secret in step 1) =
+# 0. NFS servers (now CHARM-MANAGED — no manual prerequisite). nfs-data / nfs-srv / nfs-home are
+#    `vantage-nfs-server` instances that RUN nfs-kernel-server, one export each, set by the `path`
+#    + `export-options` config below; `filesystem-client` mounts them by relation. The charm is
+#    multi-tenant (per-unit /etc/exports.d drop-ins), so all three SHARE ONE LXD VM (nfs-srv +
+#    nfs-home co-locate on nfs-data via `to:`); kernel nfsd needs a real kernel → a VM. To
+#    change an export at runtime:
+#      juju config nfs-home export-options='10.0.0.0/24(rw,sync,no_subtree_check,no_root_squash)'
+#    `no_root_squash` on /data + /home lets pam_mkhomedir (runs as root on the slurm nodes)
+#    mkdir+chown each user's /home/<user>; /srv is read-only. (To front an EXTERNAL NFS host
+#    instead, swap these apps back to `nfs-server-proxy` with hostname/path config — same
+#    `filesystem` relation to fs-data/fs-srv/fs-home.)
+#
+# 1. Vantage cluster secret — ONE Juju secret shared by vantage-agent + sssd, the only
+#    manual post-deploy step. It carries the agent's OIDC creds AND sssd's org-id + bind password;
+#    each charm reads the keys it needs and derives the rest (sssd builds the org-scoped bind DN +
+#    search base from org-id + domain-name). The agent then downloads + configures the snap on
+#    config-changed; sssd renders sssd.conf. Create once, grant + set on both:
+#      SID=$(juju add-secret vantage-cluster \
+#        vantage-url=https://app.dev.vantagecompute.ai \
+#        client-id=<cluster-oidc-client-id> client-secret=<cluster-oidc-client-secret> \
+#        org-id=<org-uuid> ldap-bind-password=<ldap-bind-password>)
+#      juju grant-secret "$SID" vantage-agent
+#      juju grant-secret "$SID" sssd
+#      juju config vantage-agent vantage-secret="$SID"
+#      juju config sssd  vantage-secret="$SID"
+#    slurmrestd's URL, Grafana's /grafana proxy, and all Prometheus targets are wired by RELATION
+#    (no extra config). (Interactive alt for the agent's creds only: the configure-credentials action.)
+#
+# 2. (optional) Slurm-protocol TLS (tls/s2n) — one secret, auto-distributed to every daemon:
+#      SID=$(juju add-secret slurm-tls ca-cert="$(cat ca.crt)" cert="$(cat tls.crt)" key="$(cat tls.key)")
+#      juju grant-secret slurm-tls slurmctld
+#      juju config slurmctld tls-secret="secret:$SID"
+#
+# 3. (optional) Cross-cluster federation (this cluster owns slurmdbd):
+#      juju run slurmctld/leader register-federation federation-name=vantage-fed \
+#        local-cluster=<this> peer-cluster=<peer>
+#
+# 4. (optional) Observability — Prometheus scrape targets now come from RELATIONS (in the bundle):
+#    slurmctld:slurm-metrics (:6817), node-exporter:node-metrics (:9100, one per
+#    node) and slurm-job-exporter:job-metrics (:9798), so you DON'T set *-metrics-targets.
+#    monitoring is a PRINCIPAL on its own machine; Grafana binds the unit's routable
+#    bind address so the auth-proxy reaches it cross-machine over proxy-endpoint, and runs JWT-only
+#    (anonymous disabled — a direct hit without a Vantage token gets 401). Grafana is fronted at
+#    /grafana via that relation, and its public root_url is INFERRED from it (the agent publishes
+#    https://<client-id>.clusters.<env>/grafana/ back to observability) — so observability needs NO
+#    config at all. The *-metrics-targets + grafana-external-url config options remain manual
+#    overrides/fallbacks.
+#    Grafana (Vantage-JWT auth, role from the token) then serves the 3 charmed-hpc Slurm
+#    dashboards + node_exporter host dashboards (CPU/mem/disk/net across nodes) + the per-job
+#    "Slurm Jobs (per-job)" dashboard. keycloak-issuer-url defaults to the dev realm. Per-job
+#    metrics need Slurm cgroup tracking (already on by default via JobAcctGatherType).
+# ===========================================================================================
+
+description: |
+  Vantage bare-metal Charmed HPC (Topology A): Slurm 26.05 control plane + compute as LXD VMs,
+  MySQL accounting, SSSD/LDAP, charm-managed NFS (vantage-nfs-server: /data, /srv, shared /home on
+  one VM), the vantage-agent auth-proxy/tunnel with Keycloak-JWKS trust (vantage-oidc relation), and
+  self-hosted Prometheus+Grafana observability (monitoring + node_exporter on every node).
+
+applications:
+  # ---- Slurm control plane + compute — LXD virtual machines -----------------------------
+  slurmctld:
+    charm: vantage-slurmctld
+    channel: &edge edge
+    base: &noble ubuntu@24.04
+    constraints: &slurm-vm cores=2 mem=4096M root-disk=20G virt-type=virtual-machine
+    num_units: 1
+
+  slurmdbd:
+    charm: vantage-slurmdbd
+    channel: *edge
+    base: *noble
+    constraints: *slurm-vm
+    num_units: 1
+
+  slurmrestd:
+    charm: vantage-slurmrestd
+    channel: *edge
+    base: *noble
+    constraints: *slurm-vm
+    num_units: 1
+
+  sackd:  # login node
+    charm: vantage-sackd
+    channel: *edge
+    base: *noble
+    constraints: *slurm-vm
+    num_units: 1
+
+  slurmd:  # compute — scale with: juju add-unit slurmd -n <N>
+    charm: vantage-slurmd
+    channel: *edge
+    base: *noble
+    constraints: *slurm-vm
+    num_units: 1
+
+  # ---- Accounting database (a container is fine; not a Slurm daemon) --------------------
+  mysql:
+    charm: mysql
+    channel: 8.0/stable
+    base: ubuntu@22.04
+    constraints: mem=2048M
+    num_units: 1
+
+  # ---- User resolution: SSSD against Vantage LDAP — subordinate ------------------------
+  sssd:
+    charm: vantage-sssd
+    channel: *edge
+    base: *noble
+    options:
+      ldap-uri: ldaps://openldap.dev.vantagecompute.ai:636
+      domain-name: vantagecompute.ai
+      ldap-access-group: slurm-users
+      # The org-scoped bind DN + search base are DERIVED from org-id; set the shared `vantage-secret`
+      # (org-id + ldap-bind-password) post-deploy (header step 1).
+
+  # ---- Container workload scheduling: Apptainer — subordinate ------------------------#
+  apptainer:
+    charm: apptainer
+    base: *noble
+
+  # ---- Vantage agent: auth-proxy + tunnel + OIDC/JWKS — subordinate on the sackd login node
+  #      (it needs the Slurm client binaries; its auth-proxy reaches slurmrestd over the network)
+  vantage-agent:
+    charm: vantage-agent
+    channel: *edge
+    base: *noble
+    options:
+      snap-channel: alpha   # current published channel of the unified vantage-agent snap
+      # credentials = the shared `vantage-secret` (header step 1); slurmrestd-url + proxy-endpoints
+      # come from relations (no manual config needed).
+
+  # ---- Observability: self-hosted Prometheus + Grafana (a lightweight COS alternative) —
+  #      PRINCIPAL on its OWN machine (Prometheus + Grafana are userspace → an LXD container is
+  #      fine, no virt-type=virtual-machine). Grafana binds the unit's routable bind address so the
+  #      cross-machine vantage-agent auth-proxy reaches it over proxy-endpoint, and runs JWT-only
+  #      (anonymous disabled). Scrape targets + Grafana's root_url are wired by RELATION (no config);
+  #      keycloak-issuer-url defaults to the dev realm (Grafana auth.jwt maps the org role).
+  monitoring:
+    charm: vantage-observability
+    channel: *edge
+    base: *noble
+    constraints: cores=2 mem=4096M root-disk=20G
+    num_units: 1
+
+  # ---- node_exporter (host CPU/mem/disk/net) on every node — subordinate ----------------
+  node-exporter:
+    charm: vantage-node-exporter
+    channel: *edge
+    base: *noble
+
+  # ---- slurm-job-exporter (per-job CPU/mem from cgroups) on COMPUTE nodes — subordinate -
+  slurm-job-exporter:
+    charm: vantage-slurm-job-exporter
+    channel: *edge
+    base: *noble
+
+  # ---- Self-hosted NFS servers (vantage-nfs-server, one app per export) -----------------
+  # Charmerizes the old manual "step 0": each runs nfs-kernel-server exporting ONE configured
+  # `path` with `export-options`, and publishes it to a filesystem-client over `filesystem_info`
+  # (same interface nfs-server-proxy used). /data is rw (no_root_squash); /srv ro; /home rw +
+  # no_root_squash so pam_mkhomedir (root) can mkdir/chown each user's dir, mounted on slurmctld +
+  # slurmd + sackd so a home created once is visible to the controller (cred fetch_identity) and
+  # every compute node (job chdir).
+  #
+  # All THREE exports share ONE LXD VM: the charm is multi-tenant (each unit owns a per-unit
+  # /etc/exports.d/ drop-in, never the shared /etc/exports), so nfs-srv + nfs-home co-locate onto
+  # the nfs-data VM via `to:`. Kernel nfsd needs a real kernel → a VM, not a container. (To split
+  # them back onto separate VMs for isolation, drop the `to:` lines and give each its own
+  # `constraints: … virt-type=virtual-machine`.)
+  nfs-data:
+    charm: vantage-nfs-server
+    channel: *edge
+    base: *noble
+    # Sized for /data + /srv + /home combined (all three exports live on this one VM's disk).
+    constraints: cores=2 mem=2048M root-disk=150G virt-type=virtual-machine
+    num_units: 1
+    options:
+      path: /data
+      export-options: "*(rw,sync,no_subtree_check,no_root_squash,insecure)"
+  nfs-srv:
+    charm: vantage-nfs-server
+    channel: *edge
+    base: *noble
+    num_units: 1
+    to: ["nfs-data/0"]   # co-locate on the nfs-data VM (own drop-in; inherits the machine)
+    options:
+      path: /srv
+      export-options: "*(ro,sync,subtree_check)"
+  nfs-home:
+    charm: vantage-nfs-server
+    channel: *edge
+    base: *noble
+    num_units: 1
+    to: ["nfs-data/0"]   # co-locate on the nfs-data VM
+    options:
+      path: /home
+      # `*` works anywhere; scope to your cluster subnet (e.g. 10.0.0.0/24(...)) to harden.
+      export-options: "*(rw,sync,no_subtree_check,no_root_squash)"
+  fs-data:
+    charm: filesystem-client
+    channel: latest/edge
+    base: *noble   # subordinate must match the noble principals it mounts on
+    options:
+      mountpoint: /data
+  fs-srv:
+    charm: filesystem-client
+    channel: latest/edge
+    base: *noble
+    options:
+      mountpoint: /srv
+  fs-home:
+    charm: filesystem-client
+    channel: latest/edge
+    base: *noble
+    options:
+      mountpoint: /home
+
+relations:
+  # --- Slurm control plane (slurmctld <- daemons) ---------------------------------------
+  - [slurmctld:slurmd, slurmd:slurmctld]
+  - [slurmctld:slurmdbd, slurmdbd:slurmctld]
+  - [slurmctld:slurmrestd, slurmrestd:slurmctld]
+  - [slurmctld:login-node, sackd:slurmctld]
+  - [slurmdbd:database, mysql:database]
+
+  # --- User resolution on ALL slurm nodes -----------------------------------------------
+  # slurmctld needs SSSD too: cred/slurm embeds the submitter's identity (uid/gid/supplementary
+  # groups) into every job credential via fetch_identity(), which getpwnam()s the LDAP user on the
+  # CONTROLLER. Without SSSD on slurmctld, `srun` fails with "Error generating job credential"
+  # (slurm_cred_create: fetch_identity() failed). slurmdbd (accounting) and slurmrestd (REST user
+  # mapping) resolve users too, so SSSD belongs on every slurm node, not just compute + login.
+  - [sssd:juju-info, slurmd:juju-info]
+  - [sssd:juju-info, sackd:juju-info]
+  - [sssd:juju-info, slurmctld:juju-info]
+  - [sssd:juju-info, slurmdbd:juju-info]
+  - [sssd:juju-info, slurmrestd:juju-info]
+
+  # --- Vantage agent: co-located on the sackd login node (needs Slurm client binaries; its
+  #     auth-proxy reaches slurmrestd over the network via slurmrestd-fqdn — header step 1),
+  #     and JWKS/OIDC trust published to slurmctld so it verifies Keycloak user tokens ---
+  - [vantage-agent:juju-info, sackd:juju-info]
+  - [vantage-agent:vantage-oidc, slurmctld:vantage-oidc]
+  # slurmrestd publishes its URL + observability publishes Grafana's proxy descriptor, so the
+  # auth-proxy is configured by relation (no `juju config vantage-agent slurmrestd-fqdn=/proxy-endpoints=`).
+  - [vantage-agent:slurmrestd-fqdn, slurmrestd:slurmrestd-fqdn]
+  - [vantage-agent:proxy-endpoint, monitoring:proxy-endpoint]
+
+  # --- Observability: Prometheus+Grafana on their OWN machine (principal); the auth-proxy fronts
+  #     Grafana at /grafana cross-machine via proxy-endpoint; node_exporter on EVERY node ------
+  - [node-exporter:juju-info, slurmd:juju-info]
+  - [node-exporter:juju-info, slurmctld:juju-info]
+  - [node-exporter:juju-info, sackd:juju-info]
+  - [node-exporter:juju-info, slurmdbd:juju-info]
+  - [node-exporter:juju-info, slurmrestd:juju-info]
+  # per-job exporter only on the COMPUTE nodes (where jobs run + the job cgroups live)
+  - [slurm-job-exporter:juju-info, slurmd:juju-info]
+  # Scrape targets by RELATION: each provider unit publishes its <ip>:<port>, so Prometheus learns
+  # the targets without the *-metrics-targets config (which stays as a manual fallback). slurmctld
+  # → :6817; every node-exporter unit → :9100; every job-exporter unit → :9798.
+  - [monitoring:slurm-metrics, slurmctld:slurm-metrics]
+  - [monitoring:node-metrics, node-exporter:node-metrics]
+  - [monitoring:job-metrics, slurm-job-exporter:job-metrics]
+
+  # --- NFS: /data (rw) + /srv (ro) mounted on compute + login nodes ---------------------
+  - [fs-data:filesystem, nfs-data:filesystem]
+  - [fs-data:juju-info, slurmd:juju-info]
+  - [fs-data:juju-info, sackd:juju-info]
+  - [fs-srv:filesystem, nfs-srv:filesystem]
+  - [fs-srv:juju-info, slurmd:juju-info]
+  - [fs-srv:juju-info, sackd:juju-info]
+  # Shared /home on the control plane + compute + login (vdeployer parity)
+  - [fs-home:filesystem, nfs-home:filesystem]
+  - [fs-home:juju-info, slurmctld:juju-info]
+  - [fs-home:juju-info, slurmd:juju-info]
+  - [fs-home:juju-info, sackd:juju-info]
+
+  # Install apptainer in the cluster (subordinate) so users can run containerized workloads on the compute nodes
+  - [apptainer:oci-runtime, slurmctld:oci-runtime]
+  - [apptainer:juju-info, sackd:juju-info]
+  - [apptainer:juju-info, slurmd:juju-info]
+

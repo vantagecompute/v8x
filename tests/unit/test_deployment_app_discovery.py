@@ -36,3 +36,16 @@ def test_builtin_on_prem_slurm_apps_are_discovered():
     assert multipass_app.substrate == "multipass"
     assert multipass_app.module is not None
     assert hasattr(multipass_app.module, "create")
+
+
+def test_builtin_on_prem_slurm_juju_app_is_discovered():
+    sdk = DeploymentAppSDK()
+
+    juju_app = sdk.get("slurm-juju", cloud="on_prem")
+
+    assert juju_app is not None
+    assert juju_app.name == "slurm-juju"
+    assert juju_app.cloud == "on_prem"
+    assert juju_app.substrate == "juju"
+    assert juju_app.module is not None
+    assert hasattr(juju_app.module, "create")

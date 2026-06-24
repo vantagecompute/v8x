@@ -30,8 +30,11 @@ from v8x.commands.cluster.create import (
 )
 
 
-def _cloud_init_for_operating_system(recorded: dict, operating_system: str) -> tuple[str, str]:
+def _cloud_init_for_operating_system(
+    recorded: dict, operating_system: str, image_version: str = "latest",
+) -> tuple[str, str]:
     recorded["operating_system"] = operating_system
+    recorded["image_version"] = image_version
     return "#cloud-config", f"https://example.com/{operating_system}.img"
 
 
@@ -142,11 +145,9 @@ def test_launch_vm_instance_uses_resource_overrides(monkeypatch, tmp_path: Path)
     assert captured["input"] == b"#cloud-config"
 
 
-def test_multipass_image_origin_uses_templated_remote_name(monkeypatch, tmp_path: Path) -> None:
+def test_multipass_image_origin_uses_versioned_remote_url(monkeypatch, tmp_path: Path) -> None:
     image_name = multipass_constants.get_multipass_cloud_image_name("rockylinux9")
-    monkeypatch.setattr(
-        multipass_app, "MULTIPASS_CLOUD_IMAGE_BASE_URL", "https://example.com/images"
-    )
+    arch = multipass_constants.MULTIPASS_ARCH
     monkeypatch.setattr(
         multipass_app,
         "MULTIPASS_CLOUD_IMAGE_LOCAL",
@@ -157,10 +158,39 @@ def test_multipass_image_origin_uses_templated_remote_name(monkeypatch, tmp_path
         "MULTIPASS_CLOUD_IMAGE_DEST",
         tmp_path / "tmp" / multipass_constants.get_multipass_cloud_image_name("resolute"),
     )
-
-    assert multipass_app._multipass_image_origin("rockylinux9") == (
-        f"https://example.com/images/{image_name}"
+    monkeypatch.setattr(
+        multipass_app, "resolve_image_version", lambda v: "0.2.1",
     )
+
+    expected = (
+        f"{multipass_constants.MULTIPASS_CLOUD_IMAGE_BASE_URL}"
+        f"/0.2.1/{arch}/{image_name}"
+    )
+    assert multipass_app._multipass_image_origin("rockylinux9") == expected
+
+
+def test_multipass_image_origin_passes_through_semver(monkeypatch, tmp_path: Path) -> None:
+    image_name = multipass_constants.get_multipass_cloud_image_name("rockylinux9")
+    arch = multipass_constants.MULTIPASS_ARCH
+    monkeypatch.setattr(
+        multipass_app,
+        "MULTIPASS_CLOUD_IMAGE_LOCAL",
+        tmp_path / "build" / multipass_constants.get_multipass_cloud_image_name("resolute"),
+    )
+    monkeypatch.setattr(
+        multipass_app,
+        "MULTIPASS_CLOUD_IMAGE_DEST",
+        tmp_path / "tmp" / multipass_constants.get_multipass_cloud_image_name("resolute"),
+    )
+    monkeypatch.setattr(
+        multipass_app, "resolve_image_version", lambda v: v,
+    )
+
+    expected = (
+        f"{multipass_constants.MULTIPASS_CLOUD_IMAGE_BASE_URL}"
+        f"/0.3.0/{arch}/{image_name}"
+    )
+    assert multipass_app._multipass_image_origin("rockylinux9", "0.3.0") == expected
 
 
 def test_multipass_image_origin_checks_templated_local_image(monkeypatch, tmp_path: Path) -> None:
@@ -228,9 +258,10 @@ def test_create_uses_slurm_multipass_options(monkeypatch, tmp_path: Path) -> Non
     monkeypatch.setattr(
         multipass_app,
         "_generate_cloud_init_configuration",
-        lambda vantage_cluster_ctx, operating_system: _cloud_init_for_operating_system(
+        lambda vantage_cluster_ctx, operating_system, image_version="latest": _cloud_init_for_operating_system(
             recorded,
             operating_system,
+            image_version,
         ),
     )
 
@@ -254,6 +285,7 @@ def test_create_uses_slurm_multipass_options(monkeypatch, tmp_path: Path) -> Non
     assert exit_result.exit_code == 0
     assert recorded == {
         "operating_system": "rockylinux9",
+        "image_version": "latest",
         "instance_name": "deployment-demo",
         "shared_dir": tmp_path,
         "cloud_init_config": "#cloud-config",
