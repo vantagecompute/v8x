@@ -36,13 +36,15 @@ from v8x.exceptions import handle_abort
 from .constants import (
     APP_NAME,
     CLOUD,
+    DEFAULT_IMAGE_CHANNEL,
     DEFAULT_MULTIPASS_OPERATING_SYSTEM,
-    MULTIPASS_CLOUD_IMAGE_BASE_URL,
     MULTIPASS_CLOUD_IMAGE_DEST,
     MULTIPASS_CLOUD_IMAGE_LOCAL,
     SUBSTRATE,
     get_multipass_cloud_image_name,
+    get_multipass_cloud_image_url,
 )
+from .manifest import resolve_image_version
 from .render import success_create_message
 from .templates import CloudInitTemplate
 from .utils import check_multipass_available
@@ -65,21 +67,20 @@ def _prepare_shared_directory(verbose: bool, console: Console) -> Path:
 def _generate_cloud_init_configuration(
     vantage_cluster_ctx: VantageClusterContext,
     operating_system: str = DEFAULT_MULTIPASS_OPERATING_SYSTEM,
+    image_version: str = DEFAULT_IMAGE_CHANNEL,
 ) -> tuple[str, str]:
     """Generate cloud-init configuration and determine image origin.
 
     Args:
         vantage_cluster_ctx: VantageClusterContext with cluster details
         operating_system: str = operating system to use.
+        image_version: Version or channel for the remote image (e.g. "latest", "0.1", "0.1.5").
 
     Returns:
         Tuple of (cloud_init_config, image_origin)
     """
-    # Use a standard Ubuntu image for now since the custom Vantage image may not be available
-    image_origin = _multipass_image_origin(operating_system)
-    # Note: Fallback to standard Ubuntu image if custom image not available
+    image_origin = _multipass_image_origin(operating_system, image_version)
 
-    # Generate cloud-init configuration using template engine
     cloud_init_template = CloudInitTemplate()
     cloud_init_config = cloud_init_template.generate_multipass_config(vantage_cluster_ctx)
 
@@ -88,6 +89,7 @@ def _generate_cloud_init_configuration(
 
 def _multipass_image_origin(
     operating_system: str = DEFAULT_MULTIPASS_OPERATING_SYSTEM,
+    image_version: str = DEFAULT_IMAGE_CHANNEL,
 ) -> str:
     """Resolve the best available Multipass image origin for an OS key."""
     image_name = get_multipass_cloud_image_name(operating_system)
@@ -99,7 +101,8 @@ def _multipass_image_origin(
     if downloaded_image.exists():
         return f"file://{downloaded_image}"
 
-    return f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/{image_name}"
+    version = resolve_image_version(image_version)
+    return get_multipass_cloud_image_url(operating_system, version)
 
 
 def _launch_vm_instance(
@@ -222,9 +225,11 @@ async def create(ctx: typer.Context, cluster: Cluster) -> typer.Exit:
     operating_system = multipass_options.get(
         "operating_system", DEFAULT_MULTIPASS_OPERATING_SYSTEM
     )
+    image_version = multipass_options.get("image_version", DEFAULT_IMAGE_CHANNEL)
     cloud_init_config, image_origin = _generate_cloud_init_configuration(
         vantage_cluster_ctx,
         operating_system,
+        image_version,
     )
 
     try:

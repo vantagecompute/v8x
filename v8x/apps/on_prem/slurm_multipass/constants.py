@@ -143,8 +143,12 @@ _ARCH_MAP = {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "
 MULTIPASS_ARCH = _ARCH_MAP.get(platform.machine().lower(), "amd64")
 
 MULTIPASS_CLOUD_IMAGE_BASE_URL = (
-    f"https://vantage-artifacts.vantagecompute.ai/images/multipass-singlenode/{MULTIPASS_ARCH}"
+    "https://vantage-artifacts.vantagecompute.ai/images/multipass-singlenode"
 )
+
+MULTIPASS_MANIFEST_URL = f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/manifest.json"
+
+DEFAULT_IMAGE_CHANNEL = "latest"
 
 
 def get_multipass_cloud_image_name(operating_system: str) -> str:
@@ -158,9 +162,12 @@ def get_multipass_cloud_image_name(operating_system: str) -> str:
     return f"multipass-singlenode-{operating_system}-{MULTIPASS_ARCH}.img"
 
 
-def get_multipass_cloud_image_url(operating_system: str) -> str:
-    """Return the remote cloud image URL for a supported Multipass OS key."""
-    return f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/{get_multipass_cloud_image_name(operating_system)}"
+def get_multipass_cloud_image_url(operating_system: str, version: str) -> str:
+    """Return the remote cloud image URL for a supported Multipass OS key and version."""
+    return (
+        f"{MULTIPASS_CLOUD_IMAGE_BASE_URL}/{version}/{MULTIPASS_ARCH}/"
+        f"{get_multipass_cloud_image_name(operating_system)}"
+    )
 
 
 def get_multipass_cloud_image_dest(operating_system: str) -> Path:
@@ -177,8 +184,6 @@ def get_multipass_cloud_image_local(operating_system: str) -> Path:
         / get_multipass_cloud_image_name(operating_system)
     )
 
-
-MULTIPASS_CLOUD_IMAGE_URL = get_multipass_cloud_image_url(DEFAULT_MULTIPASS_OPERATING_SYSTEM)
 
 MULTIPASS_CLOUD_IMAGE_DEST = get_multipass_cloud_image_dest(DEFAULT_MULTIPASS_OPERATING_SYSTEM)
 
