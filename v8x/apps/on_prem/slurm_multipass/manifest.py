@@ -34,8 +34,9 @@ def _fetch_manifest() -> dict:
 
     try:
         with urllib.request.urlopen(MULTIPASS_MANIFEST_URL, timeout=15) as resp:
-            _cached_manifest = json.loads(resp.read().decode())
-            return _cached_manifest
+            manifest = json.loads(resp.read().decode())
+            _cached_manifest = manifest
+            return manifest
     except Exception as exc:
         raise RuntimeError(
             f"Failed to fetch multipass image manifest from {MULTIPASS_MANIFEST_URL}: {exc}"
