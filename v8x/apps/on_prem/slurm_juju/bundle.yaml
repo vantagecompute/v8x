@@ -178,10 +178,11 @@ applications:
   # ---- Self-hosted NFS servers (vantage-nfs-server, one app per export) -----------------
   # Charmerizes the old manual "step 0": each runs nfs-kernel-server exporting ONE configured
   # `path` with `export-options`, and publishes it to a filesystem-client over `filesystem_info`
-  # (same interface nfs-server-proxy used). /data is rw (no_root_squash); /srv ro; /home rw +
-  # no_root_squash so pam_mkhomedir (root) can mkdir/chown each user's dir, mounted on slurmctld +
-  # slurmd + sackd so a home created once is visible to the controller (cred fetch_identity) and
-  # every compute node (job chdir).
+  # (same interface nfs-server-proxy used). /data is rw + `export-mode: 1777` (writable+sticky
+  # scratch, so a job writes `/data/<x>` as its own LDAP user — else mkdir → Permission denied);
+  # /srv ro; /home rw + no_root_squash so pam_mkhomedir (root) can mkdir/chown each user's dir,
+  # mounted on slurmctld + slurmd + sackd so a home created once is visible to the controller
+  # (cred fetch_identity) and every compute node (job chdir).
   #
   # All THREE exports share ONE LXD VM: the charm is multi-tenant (each unit owns a per-unit
   # /etc/exports.d/ drop-in, never the shared /etc/exports), so nfs-srv + nfs-home co-locate onto
@@ -198,6 +199,9 @@ applications:
     options:
       path: /data
       export-options: "*(rw,sync,no_subtree_check,no_root_squash,insecure)"
+      # /data is shared SCRATCH users write to directly (a job does `mkdir /data/<x>` as its LDAP
+      # user), so make the root world-writable + sticky like /tmp — else mkdir → Permission denied.
+      export-mode: "1777"
   nfs-srv:
     charm: vantage-nfs-server
     channel: *edge
