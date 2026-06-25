@@ -49,13 +49,16 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 
 logger = logging.getLogger(__name__)
 
-SLURM_MULTIPASS_OPTION_KEYS = {"operating_system", "cpu", "mem", "disk"}
-SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES = ", ".join(SUPPORTED_MULTIPASS_OPERATING_SYSTEMS)
+SLURM_MULTIPASS_OPTION_KEYS = {"operating_system", "cpu", "mem", "disk", "image_version"}
+SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES = ", ".join(
+    SUPPORTED_MULTIPASS_OPERATING_SYSTEMS
+)
 SLURM_MULTIPASS_OPTIONS_HELP = (
     "Comma-separated slurm-multipass overrides: "
     f"operating_system choices [{SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES}], "
+    "image_version (channel like latest/0.1 or exact version like 0.1.5), "
     "cpu, mem, disk. Example: "
-    "operating_system=rockylinux9,cpu=4,mem=8,disk=128G"
+    "operating_system=rockylinux9,image_version=0.1,cpu=4,mem=8,disk=128G"
     ". For slurm-juju: controller, model (both required), e.g. "
     "controller=lxd-controller,model=hpc"
 )

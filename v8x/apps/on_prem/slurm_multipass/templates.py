@@ -50,6 +50,9 @@ class CloudInitTemplate:
             )
 
             cloud_config = {
+                "package_update": False,
+                "package_upgrade": False,
+                "packages": None,
                 "write_files": [
                     {
                         "path": "/etc/sssd/sssd.conf",
@@ -313,7 +316,27 @@ SH"""
             f"""bash <<'SH'
 set -euo pipefail
 
-SNAP_ARCH=$(dpkg --print-architecture)
+if command -v dpkg >/dev/null 2>&1; then
+    MACHINE_ARCH=$(dpkg --print-architecture)
+elif command -v rpm >/dev/null 2>&1; then
+    MACHINE_ARCH=$(rpm --eval '%{{_arch}}')
+else
+    MACHINE_ARCH=$(uname -m)
+fi
+
+case "$MACHINE_ARCH" in
+    amd64|x86_64)
+        SNAP_ARCH=amd64
+        ;;
+    arm64|aarch64)
+        SNAP_ARCH=arm64
+        ;;
+    *)
+        echo "Unsupported architecture for vantage-agent snap: $MACHINE_ARCH" >&2
+        exit 1
+        ;;
+esac
+
 SNAP_NAME={shlex.quote(VANTAGE_AGENT_SNAP_NAME)}
 SNAP_BASE_URL={shlex.quote(VANTAGE_AGENT_SNAP_CLOUDFRONT_BASE_URL)}
 SNAP_URL="$SNAP_BASE_URL/$SNAP_ARCH/latest/$SNAP_NAME.snap"
@@ -333,6 +356,14 @@ curl -fsSL \
     "$SNAP_URL" \
     -o /tmp/${{SNAP_NAME}}.snap
 
+systemctl enable --now snapd.socket || true
+if systemctl cat snapd.service >/dev/null 2>&1; then
+    systemctl start snapd.service || true
+fi
+if [[ ! -e /snap && -d /var/lib/snapd/snap ]]; then
+    ln -s /var/lib/snapd/snap /snap
+fi
+snap wait system seed.loaded
 snap install --classic --dangerous /tmp/${{SNAP_NAME}}.snap
 SH""",
         ]
