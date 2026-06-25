@@ -38,6 +38,7 @@ const sidebars: SidebarsConfig = {
                 'deployment-applications/localhost/charmed-hpc/index',
                 'deployment-applications/localhost/microk8s/index',
                 'deployment-applications/localhost/multipass/index',
+                'deployment-applications/localhost/slurm-juju/index',
               ],
             },
           ],

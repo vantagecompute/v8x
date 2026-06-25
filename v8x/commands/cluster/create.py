@@ -21,6 +21,7 @@ from typing import Any, Dict, Optional
 
 import typer
 import yaml
+from pydantic import ValidationError
 from typing_extensions import Annotated
 from vantage_sdk.cloud import cloud_account_sdk
 from vantage_sdk.cloud.schema import CloudType
@@ -28,6 +29,13 @@ from vantage_sdk.cluster.crud import cluster_sdk
 from vantage_sdk.cluster.schema import Cluster
 from vantage_sdk.exceptions import Abort
 
+from v8x.apps.on_prem.slurm_juju.constants import (
+    APP_NAME as SLURM_JUJU_APP_NAME,
+)
+from v8x.apps.on_prem.slurm_juju.constants import (
+    SLURM_JUJU_OPTION_KEYS,
+)
+from v8x.apps.on_prem.slurm_juju.schema import SlurmJujuOptions
 from v8x.apps.on_prem.slurm_multipass.constants import (
     APP_NAME as SLURM_MULTIPASS_APP_NAME,
 )
@@ -42,14 +50,14 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 logger = logging.getLogger(__name__)
 
 SLURM_MULTIPASS_OPTION_KEYS = {"operating_system", "cpu", "mem", "disk"}
-SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES = ", ".join(
-    SUPPORTED_MULTIPASS_OPERATING_SYSTEMS
-)
+SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES = ", ".join(SUPPORTED_MULTIPASS_OPERATING_SYSTEMS)
 SLURM_MULTIPASS_OPTIONS_HELP = (
     "Comma-separated slurm-multipass overrides: "
     f"operating_system choices [{SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES}], "
     "cpu, mem, disk. Example: "
     "operating_system=rockylinux9,cpu=4,mem=8,disk=128G"
+    ". For slurm-juju: controller, model (both required), e.g. "
+    "controller=lxd-controller,model=hpc"
 )
 
 
@@ -79,18 +87,12 @@ def _normalize_multipass_size(value: str, option_name: str) -> str:
     )
 
 
-def _parse_slurm_multipass_options(options: Optional[str], app: Optional[str]) -> Dict[str, str]:
-    """Parse --options for slurm-multipass deployments."""
-    if not options:
-        return {}
+def _parse_kv_options(options: str, allowed_keys: set[str], *, app_label: str) -> Dict[str, str]:
+    """Split a comma-separated key=value option string into a validated dict.
 
-    if (app or "").lower() != SLURM_MULTIPASS_APP_NAME:
-        raise Abort(
-            f"--options is only supported with --app {SLURM_MULTIPASS_APP_NAME}.",
-            subject="Unsupported Options",
-            log_message=f"--options provided for unsupported app: {app}",
-        )
-
+    Shared by the per-app option parsers; validates format, allowed keys,
+    duplicates, and empty values, preserving the established Abort subjects.
+    """
     parsed: Dict[str, str] = {}
     for part in options.split(","):
         if not part.strip():
@@ -102,9 +104,11 @@ def _parse_slurm_multipass_options(options: Optional[str], app: Optional[str]) -
                 log_message=f"Invalid options segment: {part}",
             )
         key, value = (item.strip() for item in part.split("=", 1))
-        if key not in SLURM_MULTIPASS_OPTION_KEYS:
+        if key not in allowed_keys:
+            supported = ", ".join(sorted(allowed_keys))
             raise Abort(
-                f"Unsupported --options key '{key}'. Supported keys: operating_system, cpu, mem, disk.",
+                f"Unsupported --options key '{key}' for --app {app_label}. "
+                f"Supported keys: {supported}.",
                 subject="Unsupported Options Key",
                 log_message=f"Unsupported --options key: {key}",
             )
@@ -121,6 +125,44 @@ def _parse_slurm_multipass_options(options: Optional[str], app: Optional[str]) -
                 log_message=f"Empty --options value for key: {key}",
             )
         parsed[key] = value
+    return parsed
+
+
+def _parse_slurm_juju_options(options: Optional[str]) -> SlurmJujuOptions:
+    """Parse + validate --options for slurm-juju deployments.
+
+    Both controller and model are required (slurm-juju does no provisioning),
+    so omitting them — or passing no --options at all — is an error.
+    """
+    parsed = _parse_kv_options(
+        options or "", SLURM_JUJU_OPTION_KEYS, app_label=SLURM_JUJU_APP_NAME
+    )
+    try:
+        return SlurmJujuOptions(**parsed)
+    except ValidationError as e:
+        raise Abort(
+            "--options for --app slurm-juju requires controller and model, e.g. "
+            "controller=lxd-controller,model=hpc.",
+            subject="Invalid Juju Options",
+            log_message=f"Invalid slurm-juju options: {e}",
+        )
+
+
+def _parse_slurm_multipass_options(options: Optional[str], app: Optional[str]) -> Dict[str, str]:
+    """Parse --options for slurm-multipass deployments."""
+    if not options:
+        return {}
+
+    if (app or "").lower() != SLURM_MULTIPASS_APP_NAME:
+        raise Abort(
+            f"--options is only supported with --app {SLURM_MULTIPASS_APP_NAME}.",
+            subject="Unsupported Options",
+            log_message=f"--options provided for unsupported app: {app}",
+        )
+
+    parsed = _parse_kv_options(
+        options, SLURM_MULTIPASS_OPTION_KEYS, app_label=SLURM_MULTIPASS_APP_NAME
+    )
 
     if "operating_system" in parsed:
         operating_system = parsed["operating_system"].lower()
@@ -309,7 +351,10 @@ async def create_cluster(  # noqa: C901
     """
     # Use UniversalOutputFormatter for consistent output
     verbose = getattr(ctx.obj, "verbose", False)
-    ctx.obj.slurm_multipass_options = _parse_slurm_multipass_options(options, app)
+    if (app or "").lower() == SLURM_JUJU_APP_NAME:
+        ctx.obj.slurm_juju_options = _parse_slurm_juju_options(options)
+    else:
+        ctx.obj.slurm_multipass_options = _parse_slurm_multipass_options(options, app)
 
     # Parse settings JSON if provided
     vdeployer_settings_dict: Dict[str, Any] = {}
