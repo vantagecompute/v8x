@@ -49,11 +49,8 @@ def test_write_files_contain_sssd_config() -> None:
     assert "ou=org-123,ou=organizations" in sssd_file["content"]
     assert "ldap://ldap.example.com" in sssd_file["content"]
     assert "binder-secret" in sssd_file["content"]
-    assert (
-        "ldap_access_filter = (memberOf=cn=slurm-users,ou=Groups,ou=org-123,ou=organizations,dc=vantagecompute,dc=ai)"
-        in sssd_file["content"]
-    )
-    assert "ldap_access_filter = (|" not in sssd_file["content"]
+    assert "access_provider  = simple" in sssd_file["content"]
+    assert "simple_allow_groups = slurm-users" in sssd_file["content"]
     assert "refresh_expired_interval = 300" in sssd_file["content"]
     assert "ldap_user_memberof = memberOf" in sssd_file["content"]
 
