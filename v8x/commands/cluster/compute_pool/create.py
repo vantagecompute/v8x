@@ -11,6 +11,7 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 """Create compute pool command."""
 
+from inspect import Parameter, signature
 import json
 from typing import Optional
 
@@ -79,6 +80,10 @@ async def create_compute_pool(
             "--control-plane/--no-control-plane", help="Whether this is a control-plane pool"
         ),
     ] = False,
+    root_disk_size: Annotated[
+        Optional[int],
+        typer.Option("--root-disk-size", help="Root disk size in GiB for autoscaled nodes"),
+    ] = None,
     labels_json: Annotated[
         str,
         typer.Option(
@@ -136,20 +141,33 @@ async def create_compute_pool(
         console.print(
             f"[dim]Creating compute pool [green]'{name}'[/green] on [green]'{cluster_name}'[/green]...[/dim]"
         )
-        response = await compute_pool_sdk.create(
-            ctx,
-            cluster_name=cluster_name,
-            name=name,
-            instance_type=instance_type,
-            min_size=min_size,
-            max_size=max_size,
-            gpu=gpu,
-            gpu_count=gpu_count,
-            control_plane=control_plane,
-            labels=labels,
-            taints=taints,
-            workload=workload,
-        )
+        create_kwargs = {
+            "cluster_name": cluster_name,
+            "name": name,
+            "instance_type": instance_type,
+            "min_size": min_size,
+            "max_size": max_size,
+            "gpu": gpu,
+            "gpu_count": gpu_count,
+            "control_plane": control_plane,
+            "labels": labels,
+            "taints": taints,
+            "workload": workload,
+        }
+        if root_disk_size is not None:
+            sdk_parameters = signature(compute_pool_sdk.create).parameters
+            supports_root_disk_size = "root_disk_size" in sdk_parameters or any(
+                parameter.kind == Parameter.VAR_KEYWORD for parameter in sdk_parameters.values()
+            )
+            if not supports_root_disk_size:
+                raise Abort(
+                    "The installed vantage-sdkpy package does not support --root-disk-size yet. "
+                    "Upgrade vantage-sdkpy before using this option.",
+                    subject="SDK Upgrade Required",
+                )
+            create_kwargs["root_disk_size"] = root_disk_size
+
+        response = await compute_pool_sdk.create(ctx, **create_kwargs)
 
         if response.status_code == 201:
             data = response.json() or {}

@@ -514,6 +514,7 @@ async def test_create_compute_pool_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
         gpu=True,
         gpu_count=1,
         control_plane=False,
+        root_disk_size=200,
         labels_json='{"custom": "true"}',
         taint=["dedicated=desktop:NoSchedule"],
     )
@@ -528,6 +529,7 @@ async def test_create_compute_pool_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
         gpu=True,
         gpu_count=1,
         control_plane=False,
+        root_disk_size=200,
         labels={"custom": "true"},
         taints=[{"key": "dedicated", "value": "desktop", "effect": "NoSchedule"}],
         workload="remote-desktop",

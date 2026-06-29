@@ -574,6 +574,11 @@ async def create_cluster(  # noqa: C901
                 vdeployer_settings_dict["autoscaler_lxd_host"] = urllib.parse.urlparse(
                     cloud_account_attributes["lxd_server_url"]
                 ).hostname
+                vdeployer_settings_dict.setdefault(
+                    "autoscaler_lxd_containerd_device",
+                    "/dev/disk/by-id/virtio-vantage-containerd",
+                )
+                vdeployer_settings_dict.setdefault("autoscaler_lxd_containerd_disk_size", 100)
 
                 required_settings = ["lxd_project_name", "autoscaler_lxd_default_network"]
                 missing_settings = [

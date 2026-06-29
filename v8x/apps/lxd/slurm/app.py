@@ -39,7 +39,15 @@ from v8x.deployments.schema import Deployment
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
 
-from .constants import APP_NAME, CLOUD, KEYCLOAK_TOKEN_PATH, SUBSTRATE, VANTAGE_PROVIDER_BINARY_URL
+from .constants import (
+    APP_NAME,
+    CLOUD,
+    DEFAULT_CONTAINERD_DEVICE,
+    DEFAULT_CONTAINERD_DISK_SIZE_GIB,
+    KEYCLOAK_TOKEN_PATH,
+    SUBSTRATE,
+    VANTAGE_PROVIDER_BINARY_URL,
+)
 from .render import success_create_message, success_destroy_message
 
 logger = logging.getLogger("v8x.apps.lxd.slurm")
@@ -244,6 +252,21 @@ def _run_vantage_provider_provision(  # noqa: C901
         "autoscaler_lxd_default_storage_pool"
     ):
         cmd.extend(["--default-storage-pool", default_storage_pool])
+
+    containerd_device = str(
+        vantage_cluster_ctx.settings.get("autoscaler_lxd_containerd_device")
+        or DEFAULT_CONTAINERD_DEVICE
+    )
+    containerd_disk_size = int(
+        vantage_cluster_ctx.settings.get("autoscaler_lxd_containerd_disk_size")
+        or DEFAULT_CONTAINERD_DISK_SIZE_GIB
+    )
+    cmd.extend(["--containerd-device", containerd_device])
+    cmd.extend(["--containerd-disk-size", str(containerd_disk_size)])
+    if containerd_storage_pool := vantage_cluster_ctx.settings.get(
+        "autoscaler_lxd_containerd_storage_pool"
+    ):
+        cmd.extend(["--containerd-storage-pool", str(containerd_storage_pool)])
 
     # Get control plane instance type from settings (from default_control_node_groups)
     control_node_groups = vantage_cluster_ctx.settings.get("default_control_node_groups", [])
