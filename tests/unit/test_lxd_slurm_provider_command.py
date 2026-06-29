@@ -54,6 +54,10 @@ def test_provider_command_passes_tag_version_without_default_chart_overrides(mon
     cmd = captured["cmd"]
     assert cmd[0:3] == ["/tmp/vantage-provider", "lxd", "provision"]
     assert cmd[cmd.index("--tag-version") + 1] == "0.2"
+    assert cmd[cmd.index("--containerd-device") + 1] == (
+        "/dev/disk/by-id/virtio-vantage-containerd"
+    )
+    assert cmd[cmd.index("--containerd-disk-size") + 1] == "100"
     assert "--vdeployer-web-chart-version" not in cmd
     assert "--vdeployer-istio-base-chart-version" not in cmd
 
@@ -83,3 +87,30 @@ def test_provider_command_preserves_explicit_chart_overrides(monkeypatch) -> Non
     assert cmd[cmd.index("--tag-version") + 1] == "0.2"
     assert cmd[cmd.index("--vdeployer-web-chart-version") + 1] == "0.1.676"
     assert cmd[cmd.index("--vdeployer-istio-base-chart-version") + 1] == "0.1.676"
+
+
+def test_provider_command_preserves_explicit_containerd_settings(monkeypatch) -> None:
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(cmd: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        captured["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(lxd_app.subprocess, "run", fake_run)
+
+    lxd_app._run_vantage_provider_provision(
+        ctx=_ctx(),
+        vantage_cluster_ctx=_cluster_ctx(
+            {
+                "autoscaler_lxd_containerd_device": "/dev/disk/by-id/custom-containerd",
+                "autoscaler_lxd_containerd_disk_size": 250,
+                "autoscaler_lxd_containerd_storage_pool": "fast-pool",
+            }
+        ),
+        binary_path=Path("/tmp/vantage-provider"),
+    )
+
+    cmd = captured["cmd"]
+    assert cmd[cmd.index("--containerd-device") + 1] == "/dev/disk/by-id/custom-containerd"
+    assert cmd[cmd.index("--containerd-disk-size") + 1] == "250"
+    assert cmd[cmd.index("--containerd-storage-pool") + 1] == "fast-pool"

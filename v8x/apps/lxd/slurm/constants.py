@@ -15,6 +15,9 @@ APP_NAME = "vantage-system"
 CLOUD = "lxd"
 SUBSTRATE = "lxd"
 
+DEFAULT_CONTAINERD_DEVICE = "/dev/disk/by-id/virtio-vantage-containerd"
+DEFAULT_CONTAINERD_DISK_SIZE_GIB = 100
+
 # Binary download URLs
 VANTAGE_PROVIDER_BINARY_URL = "https://vantage-artifacts.vantagecompute.ai/binaries/vantage-provider/linux-amd64/latest/vantage-provider"
 VANTAGE_NODE_SECURITY_BINARY_URL = "https://vantage-artifacts.vantagecompute.ai/binaries/vantage-node-security/linux-amd64/latest/vantage-node-security"
