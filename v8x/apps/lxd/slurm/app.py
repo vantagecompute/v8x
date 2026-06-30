@@ -136,13 +136,19 @@ def _get_vantage_provider_binary_path() -> Path:
 
 def _download_vantage_provider_binary(
     vantage_cluster_ctx: VantageClusterContext,
+    provider_binary_url: Optional[str] = None,
 ) -> Path:
     """Download the vantage-provider binary with Keycloak authentication if not already present.
 
-    The binary is stored in ~/.vdeployer/vantage-provider and will be reused if it already exists.
+    The binary is stored in ~/.v8x/bin/vantage-provider and is reused if it already
+    exists. When ``provider_binary_url`` is supplied (a dev override), the cache is bypassed
+    and the binary is re-downloaded from that URL on every run, so an iterating custom build
+    at a fixed URL is always re-fetched.
 
     Args:
         vantage_cluster_ctx: Context containing cluster credentials
+        provider_binary_url: Optional override for the download URL. Defaults to the
+            published artifact (``VANTAGE_PROVIDER_BINARY_URL``).
 
     Returns:
         Path to the vantage-provider binary
@@ -151,15 +157,20 @@ def _download_vantage_provider_binary(
         Exception: If download fails
     """
     binary_path = _get_vantage_provider_binary_path()
+    download_url = provider_binary_url or VANTAGE_PROVIDER_BINARY_URL
 
-    # Check if binary already exists
-    if binary_path.exists():
+    # Cache-first for the published artifact. A custom override always re-downloads
+    # (overwriting the cached binary) so a dev build at a fixed URL is re-fetched each run.
+    if binary_path.exists() and not provider_binary_url:
         logger.info(f"vantage-provider binary already exists at {binary_path}, skipping download")
         return binary_path
-    else:
-        binary_path.parent.mkdir(parents=True, exist_ok=True)
 
-    logger.info("Downloading vantage-provider binary...")
+    binary_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if provider_binary_url:
+        logger.info(f"Downloading vantage-provider binary from override URL {download_url}...")
+    else:
+        logger.info("Downloading vantage-provider binary...")
 
     # Get JWT token for authenticated download
     token = _get_keycloak_token(
@@ -171,7 +182,7 @@ def _download_vantage_provider_binary(
     # Download the binary with authentication
     with httpx.Client() as client:
         response = client.get(
-            VANTAGE_PROVIDER_BINARY_URL,
+            download_url,
             headers={"Authorization": f"Bearer {token}"},
             timeout=120.0,
             follow_redirects=True,
@@ -314,6 +325,15 @@ def _run_vantage_provider_provision(  # noqa: C901
 
     if org_name := vantage_cluster_ctx.settings.get("keycloak_organization_name"):
         cmd.extend(["--organization-name", org_name])
+
+    # Optional dev override: point the provider (and the node-security it bootstraps)
+    # at a custom vantage-node-security build. Sourced from the cloud-account
+    # attribute (ctx.obj.cloud_config_metadata). Only emitted when set, so default
+    # deploys stay compatible with provider builds that don't expose the flag.
+    if node_security_binary_url := ctx.obj.cloud_config_metadata.get(
+        "vantage_node_security_binary_url"
+    ):
+        cmd.extend(["--node-security-binary-url", node_security_binary_url])
 
     if ctx.obj.cloud_config_metadata.get("dev_mode"):
         cmd.append("--dev")
@@ -900,9 +920,14 @@ async def _deploy_vantage_system_lxd(
     """
     console = ctx.obj.console
 
-    # Step 1: Download the vantage-provider binary (or use existing one)
+    # Step 1: Download the vantage-provider binary (or use existing one). An optional
+    # cloud-account attribute overrides the download URL (dev: fetch a custom build).
     console.print("[bold blue]Step 1: Downloading vantage-provider binary...[/bold blue]")
-    binary_path = _download_vantage_provider_binary(deployment.vantage_cluster_ctx)
+    cloud_config_metadata = getattr(ctx.obj, "cloud_config_metadata", {}) or {}
+    binary_path = _download_vantage_provider_binary(
+        deployment.vantage_cluster_ctx,
+        provider_binary_url=cloud_config_metadata.get("vantage_provider_binary_url"),
+    )
     console.print("[green]✓[/green] vantage-provider binary ready")
 
     # Step 2: Run vantage-provider provision

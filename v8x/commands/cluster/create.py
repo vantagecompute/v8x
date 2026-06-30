@@ -317,6 +317,26 @@ async def create_cluster(  # noqa: C901
             help=SLURM_MULTIPASS_OPTIONS_HELP,
         ),
     ] = None,
+    node_security_binary_url: Annotated[
+        Optional[str],
+        typer.Option(
+            "--node-security-binary-url",
+            help=(
+                "Override the vantage-node-security binary URL passed to the provider "
+                "'lxd provision' and baked into autoscaler VM cloud-init (dev/testing)."
+            ),
+        ),
+    ] = None,
+    vantage_provider_binary_url: Annotated[
+        Optional[str],
+        typer.Option(
+            "--vantage-provider-binary-url",
+            help=(
+                "Override the URL the vantage-provider binary is downloaded from; forces a "
+                "re-download, bypassing the ~/.v8x/bin cache (dev/testing)."
+            ),
+        ),
+    ] = None,
 ):
     """Create a new Vantage cluster.
 
@@ -454,6 +474,15 @@ async def create_cluster(  # noqa: C901
 
     actual_cloud = cloud_type_enum.value
     cloud_account_attributes = cloud_account.attributes or {}
+
+    # CLI overrides (dev/testing) take precedence over stored attributes. Overlaying
+    # them here routes them through the existing machinery: ctx.obj.cloud_config_metadata
+    # (read by the LXD app for the provider download + provision flag) and the autoscaler
+    # cloud-init mapping below. Works whether the cloud account was created or reused.
+    if node_security_binary_url:
+        cloud_account_attributes["vantage_node_security_binary_url"] = node_security_binary_url
+    if vantage_provider_binary_url:
+        cloud_account_attributes["vantage_provider_binary_url"] = vantage_provider_binary_url
 
     # Recover real cloud type from attributes (e.g., microk8s stored as on_prem in backend)
     if "vantage_cloud_type" in cloud_account_attributes:
