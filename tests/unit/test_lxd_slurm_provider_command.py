@@ -62,6 +62,31 @@ def test_provider_command_passes_tag_version_without_default_chart_overrides(mon
     assert "--vdeployer-istio-base-chart-version" not in cmd
 
 
+def test_provider_command_preserves_explicit_control_plane_instance_type(monkeypatch) -> None:
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(cmd: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        captured["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(lxd_app.subprocess, "run", fake_run)
+
+    lxd_app._run_vantage_provider_provision(
+        ctx=_ctx(),
+        vantage_cluster_ctx=_cluster_ctx(
+            {
+                "default_control_node_groups": [
+                    {"name": "control-plane", "instance_type": "control-plane-smx"}
+                ]
+            }
+        ),
+        binary_path=Path("/tmp/vantage-provider"),
+    )
+
+    cmd = captured["cmd"]
+    assert cmd[cmd.index("--control-plane-instance-type") + 1] == "control-plane-smx"
+
+
 def test_provider_command_preserves_explicit_chart_overrides(monkeypatch) -> None:
     captured: dict[str, list[str]] = {}
 
