@@ -11,8 +11,8 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 """Create compute pool command."""
 
-from inspect import Parameter, signature
 import json
+from inspect import Parameter, signature
 from typing import Optional
 
 import typer

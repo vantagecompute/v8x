@@ -59,8 +59,7 @@ def resolve_image_version(version_or_channel: str = "latest") -> str:
     if version is None:
         available = ", ".join(sorted(channels)) or "(none)"
         raise ValueError(
-            f"Unknown image channel '{version_or_channel}'. "
-            f"Available channels: {available}"
+            f"Unknown image channel '{version_or_channel}'. Available channels: {available}"
         )
     return version
 

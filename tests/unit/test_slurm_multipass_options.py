@@ -31,7 +31,9 @@ from v8x.commands.cluster.create import (
 
 
 def _cloud_init_for_operating_system(
-    recorded: dict, operating_system: str, image_version: str = "latest",
+    recorded: dict,
+    operating_system: str,
+    image_version: str = "latest",
 ) -> tuple[str, str]:
     recorded["operating_system"] = operating_system
     recorded["image_version"] = image_version
@@ -159,13 +161,12 @@ def test_multipass_image_origin_uses_versioned_remote_url(monkeypatch, tmp_path:
         tmp_path / "tmp" / multipass_constants.get_multipass_cloud_image_name("resolute"),
     )
     monkeypatch.setattr(
-        multipass_app, "resolve_image_version", lambda v: "0.2.1",
+        multipass_app,
+        "resolve_image_version",
+        lambda v: "0.2.1",
     )
 
-    expected = (
-        f"{multipass_constants.MULTIPASS_CLOUD_IMAGE_BASE_URL}"
-        f"/0.2.1/{arch}/{image_name}"
-    )
+    expected = f"{multipass_constants.MULTIPASS_CLOUD_IMAGE_BASE_URL}/0.2.1/{arch}/{image_name}"
     assert multipass_app._multipass_image_origin("rockylinux9") == expected
 
 
@@ -183,13 +184,12 @@ def test_multipass_image_origin_passes_through_semver(monkeypatch, tmp_path: Pat
         tmp_path / "tmp" / multipass_constants.get_multipass_cloud_image_name("resolute"),
     )
     monkeypatch.setattr(
-        multipass_app, "resolve_image_version", lambda v: v,
+        multipass_app,
+        "resolve_image_version",
+        lambda v: v,
     )
 
-    expected = (
-        f"{multipass_constants.MULTIPASS_CLOUD_IMAGE_BASE_URL}"
-        f"/0.3.0/{arch}/{image_name}"
-    )
+    expected = f"{multipass_constants.MULTIPASS_CLOUD_IMAGE_BASE_URL}/0.3.0/{arch}/{image_name}"
     assert multipass_app._multipass_image_origin("rockylinux9", "0.3.0") == expected
 
 
@@ -258,10 +258,12 @@ def test_create_uses_slurm_multipass_options(monkeypatch, tmp_path: Path) -> Non
     monkeypatch.setattr(
         multipass_app,
         "_generate_cloud_init_configuration",
-        lambda vantage_cluster_ctx, operating_system, image_version="latest": _cloud_init_for_operating_system(
-            recorded,
-            operating_system,
-            image_version,
+        lambda vantage_cluster_ctx, operating_system, image_version="latest": (
+            _cloud_init_for_operating_system(
+                recorded,
+                operating_system,
+                image_version,
+            )
         ),
     )
 

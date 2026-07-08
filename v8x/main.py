@@ -233,7 +233,9 @@ def _check_existing_login(profile: str) -> Optional[str]:
 @with_cache
 @attach_settings
 @attach_client
-async def login(ctx: typer.Context, qr: bool = typer.Option(False, "--qr", help="Show a scannable QR code")):
+async def login(
+    ctx: typer.Context, qr: bool = typer.Option(False, "--qr", help="Show a scannable QR code")
+):
     """Authenticate against the v8x by obtaining an authentication token."""
     ctx.obj.show_qr = qr
     formatter = UniversalOutputFormatter(console=ctx.obj.console, json_output=ctx.obj.json_output)

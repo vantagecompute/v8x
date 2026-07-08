@@ -50,9 +50,7 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 logger = logging.getLogger(__name__)
 
 SLURM_MULTIPASS_OPTION_KEYS = {"operating_system", "cpu", "mem", "disk", "image_version"}
-SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES = ", ".join(
-    SUPPORTED_MULTIPASS_OPERATING_SYSTEMS
-)
+SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES = ", ".join(SUPPORTED_MULTIPASS_OPERATING_SYSTEMS)
 SLURM_MULTIPASS_OPTIONS_HELP = (
     "Comma-separated slurm-multipass overrides: "
     f"operating_system choices [{SLURM_MULTIPASS_OPERATING_SYSTEM_CHOICES}], "
