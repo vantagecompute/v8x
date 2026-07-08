@@ -28,9 +28,9 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 @attach_vantage_rest_client
 async def delete_user_service(
     ctx: typer.Context,
-    service_type: Annotated[
+    workload: Annotated[
         str,
-        typer.Argument(help=f"Service type. Valid types: {', '.join(sorted(USER_SERVICES))}"),
+        typer.Argument(help=f"Workload. Valid workloads: {', '.join(sorted(USER_SERVICES))}"),
     ],
     service_id: Annotated[
         str,
@@ -67,31 +67,31 @@ async def delete_user_service(
     console = ctx.obj.console
     formatter = ctx.obj.formatter
 
-    service_type_lower = service_type.lower()
+    workload_lower = workload.lower()
 
     # Confirm deletion unless --force is used
     if not force:
         confirm = typer.confirm(
-            f"Are you sure you want to delete {service_type_lower} '{service_id[:8]}...'?"
+            f"Are you sure you want to delete {workload_lower} '{service_id[:8]}...'?"
         )
         if not confirm:
             console.print("[yellow]Deletion cancelled[/yellow]")
             return
 
     try:
-        console.print(f"[dim]Deleting {service_type_lower} '{service_id[:8]}...'...[/dim]")
+        console.print(f"[dim]Deleting {workload_lower} '{service_id[:8]}...'...[/dim]")
 
         response = await user_service_sdk.delete(
             ctx,
             cluster_name=cluster_name,
-            service_type=service_type_lower,
+            workload=workload_lower,
             service_id=service_id,
         )
 
         if response.status_code == 200:
             result = response.json()
             if result.get("success"):
-                formatter.success(f"{service_type_lower} '{service_id[:8]}...' deleted")
+                formatter.success(f"{workload_lower} '{service_id[:8]}...' deleted")
             else:
                 console.print(f"[yellow]{result.get('message', 'Delete returned false')}[/yellow]")
         else:
@@ -109,6 +109,6 @@ async def delete_user_service(
         raise
     except Exception as e:
         formatter.render_error(
-            error_message=f"Failed to delete {service_type_lower} '{service_id[:8]}...'.",
+            error_message=f"Failed to delete {workload_lower} '{service_id[:8]}...'.",
             details={"error": str(e)},
         )

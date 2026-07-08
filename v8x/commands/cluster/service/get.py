@@ -28,9 +28,9 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 @attach_vantage_rest_client
 async def get_user_service(
     ctx: typer.Context,
-    service_type: Annotated[
+    workload: Annotated[
         str,
-        typer.Argument(help=f"Service type. Valid types: {', '.join(sorted(USER_SERVICES))}"),
+        typer.Argument(help=f"Workload. Valid workloads: {', '.join(sorted(USER_SERVICES))}"),
     ],
     service_id: Annotated[
         str,
@@ -56,35 +56,40 @@ async def get_user_service(
     """
     console = ctx.obj.console
 
-    service_type_lower = service_type.lower()
+    workload_lower = workload.lower()
 
     try:
-        console.print(f"[dim]Fetching {service_type_lower} '{service_id[:8]}...'...[/dim]")
+        console.print(f"[dim]Fetching {workload_lower} '{service_id[:8]}...'...[/dim]")
 
         response = await user_service_sdk.get(
             ctx,
             cluster_name=cluster_name,
-            service_type=service_type_lower,
+            workload=workload_lower,
             service_id=service_id,
         )
 
         if response.status_code == 200:
             svc = response.json()
-            console.print(f"\n[bold cyan]{svc.get('service_type', 'N/A')}[/bold cyan]")
+            console.print(f"\n[bold cyan]{svc.get('workload', 'N/A')}[/bold cyan]")
             console.print(f"  ID: {svc.get('id', 'N/A')}")
             console.print(f"  Name: {svc.get('name', 'N/A')}")
             console.print(f"  Namespace: {svc.get('namespace', 'N/A')}")
             console.print(f"  Username: {svc.get('username', 'N/A')}")
             console.print(f"  Status: {svc.get('status', 'N/A')}")
             console.print(f"  Replicas: {svc.get('ready_replicas', 0)}/{svc.get('replicas', 1)}")
+            if svc.get("preset"):
+                console.print(f"  Preset: {svc.get('preset')}")
+            options = svc.get("options") or {}
+            if options.get("image"):
+                console.print(f"  Image: {options.get('image')}")
+            if options.get("resolution"):
+                console.print(f"  Resolution: {options.get('resolution')}")
             if svc.get("url"):
                 console.print(f"  URL: {svc.get('url')}")
             if svc.get("created_at"):
                 console.print(f"  Created: {svc.get('created_at')}")
             if svc.get("pvc_name"):
                 console.print(f"  PVC Name: {svc.get('pvc_name')}")
-            if svc.get("resolution"):
-                console.print(f"  Resolution: {svc.get('resolution')}")
         elif response.status_code == 404:
             raise Abort(
                 f"Service not found: {service_id}",
@@ -106,6 +111,6 @@ async def get_user_service(
         raise
     except Exception as e:
         ctx.obj.formatter.render_error(
-            error_message=f"Failed to get {service_type_lower} '{service_id[:8]}...'.",
+            error_message=f"Failed to get {workload_lower} '{service_id[:8]}...'.",
             details={"error": str(e)},
         )

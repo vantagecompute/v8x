@@ -28,10 +28,10 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 @attach_vantage_rest_client
 async def create_user_service(
     ctx: typer.Context,
-    service_type: Annotated[
+    workload: Annotated[
         str,
         typer.Argument(
-            help=f"Service type to create. Valid types: {', '.join(sorted(USER_SERVICES))}"
+            help=f"Workload to create. Valid workloads: {', '.join(sorted(USER_SERVICES))}"
         ),
     ],
     cluster_name: Annotated[
@@ -42,82 +42,62 @@ async def create_user_service(
             help="Name of the cluster",
         ),
     ],
+    name: Annotated[
+        str | None,
+        typer.Option(
+            "--name",
+            help="Optional custom service name (auto-generated when omitted).",
+        ),
+    ] = None,
+    preset: Annotated[
+        str | None,
+        typer.Option(
+            "--preset",
+            "-p",
+            help="UserServicePreset name supplying sizing, node group, Slurm attachment, "
+            "and extra labels (see 'GET /vdeployer/service-presets/user-service').",
+        ),
+    ] = None,
+    image: Annotated[
+        str | None,
+        typer.Option(
+            "--image",
+            help="Image override: a bare tag replaces the version on the workload's "
+            "default registry image; a value containing '/' or ':' is used as a full reference.",
+        ),
+    ] = None,
     resolution: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--resolution",
             "-r",
-            help="Resolution for remote-desktop (e.g., 1920x1080)",
-        ),
-    ] = "1920x1080",
-    source_namespace: Annotated[
-        str,
-        typer.Option(
-            "--source-namespace",
-            help="Namespace where cephfs-user-homes PVC exists",
-        ),
-    ] = "vantage-rook-ceph",
-    source_pvc_name: Annotated[
-        str,
-        typer.Option(
-            "--source-pvc-name",
-            help="Name of source PVC",
-        ),
-    ] = "cephfs-user-homes",
-    node_group: Annotated[
-        str | None,
-        typer.Option(
-            "--node-group",
-            "-n",
-            help="Node group name for scheduling (e.g., 'desktop-lg', 'shell-sm'). "
-            "Pods are scheduled to nodes with vc.pool=<name>.",
-        ),
-    ] = None,
-    instance_type: Annotated[
-        str | None,
-        typer.Option(
-            "--instance-type",
-            "-i",
-            help="Instance type for node selection (e.g., small, medium, large, gpu). "
-            "Deprecated: use --node-group instead.",
-        ),
-    ] = None,
-    image_version: Annotated[
-        str | None,
-        typer.Option(
-            "--image-version",
-            help="Image version to use for the service container.",
+            help="Desktop resolution for remote-desktop (e.g., 1920x1080).",
         ),
     ] = None,
 ):
     """Create a user service on a Vantage cluster.
 
     Creates a user-specific service like PVC viewer, cloud shell, or remote desktop.
-    The username is automatically determined from your authenticated identity.
+    The username is automatically determined from your authenticated identity, and
+    sizing/scheduling comes from the referenced preset.
 
     Examples:
-        # Create a PVC viewer
+        # Create a PVC viewer with workload defaults
         v8x cluster service create pvc-viewer --cluster my-cluster
 
-        # Create a cloud shell
-        v8x cluster service create cloud-shell -c my-cluster
+        # Create a cloud shell from a preset
+        v8x cluster service create cloud-shell -c my-cluster --preset shell-sm
 
-        # Create a remote desktop with specific resolution
-        v8x cluster service create remote-desktop -c my-cluster -r 2560x1440
+        # Create a remote desktop from a preset with a resolution override
+        v8x cluster service create remote-desktop -c my-cluster -p desktop-md -r 2560x1440
 
-        # Create a remote desktop on a GPU node
-        v8x cluster service create remote-desktop -c my-cluster -i gpu
-
-        # Create a remote desktop with a specific image version
-        v8x cluster service create remote-desktop -c my-cluster --image-version 1.2.3
-
-        # Create a cloud shell with a specific image version
-        v8x cluster service create cloud-shell -c my-cluster --image-version 0.9.0
+        # Create a cloud shell with a specific image tag
+        v8x cluster service create cloud-shell -c my-cluster --image resolute-0.2
     """
     console = ctx.obj.console
     formatter = ctx.obj.formatter
 
-    # Get username from authenticated persona
+    # Username comes from the JWT server-side; resolve it locally only for output.
     persona = ctx.obj.persona
     if not persona or not persona.identity_data or not persona.identity_data.username:
         raise Abort(
@@ -127,30 +107,34 @@ async def create_user_service(
         )
     username = persona.identity_data.username
 
-    service_type_lower = service_type.lower()
+    workload_lower = workload.lower()
 
     try:
-        console.print(f"[dim]Creating {service_type_lower} for user '{username}'...[/dim]")
+        console.print(f"[dim]Creating {workload_lower} for user '{username}'...[/dim]")
 
         response = await user_service_sdk.create(
             ctx,
             cluster_name=cluster_name,
-            service_type=service_type_lower,
-            username=username,
+            workload=workload_lower,
+            name=name,
+            preset=preset,
+            image=image,
             resolution=resolution,
-            source_namespace=source_namespace,
-            source_pvc_name=source_pvc_name,
-            node_group=node_group,
-            instance_type=instance_type,
-            image_version=image_version,
         )
 
         if response.status_code == 200:
             result = response.json()
-            formatter.success(f"{service_type_lower} created for user '{username}'")
+            formatter.success(f"{workload_lower} created for user '{username}'")
             console.print(f"  Service ID: {result.get('id', 'N/A')}")
             console.print(f"  URL: {result.get('url', 'N/A')}")
             console.print(f"  Status: {result.get('status', 'N/A')}")
+            if result.get("preset"):
+                console.print(f"  Preset: {result.get('preset')}")
+            options = result.get("options") or {}
+            if options.get("image"):
+                console.print(f"  Image: {options.get('image')}")
+            if options.get("resolution"):
+                console.print(f"  Resolution: {options.get('resolution')}")
         else:
             try:
                 error_detail = response.json().get("detail", response.text)
@@ -166,6 +150,6 @@ async def create_user_service(
         raise
     except Exception as e:
         formatter.render_error(
-            error_message=f"Failed to create {service_type_lower} for user '{username}'.",
+            error_message=f"Failed to create {workload_lower} for user '{username}'.",
             details={"error": str(e)},
         )
