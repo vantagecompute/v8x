@@ -245,7 +245,9 @@ def _run_vantage_provider_provision(  # noqa: C901
     if web_chart_version := vantage_cluster_ctx.settings.get("vdeployer_web_chart_version"):
         cmd.extend(["--vdeployer-web-chart-version", str(web_chart_version)])
 
-    if istio_base_chart_version := vantage_cluster_ctx.settings.get("vdeployer_istio_base_chart_version"):
+    if istio_base_chart_version := vantage_cluster_ctx.settings.get(
+        "vdeployer_istio_base_chart_version"
+    ):
         cmd.extend(["--vdeployer-istio-base-chart-version", str(istio_base_chart_version)])
 
     if default_storage_pool := vantage_cluster_ctx.settings.get(

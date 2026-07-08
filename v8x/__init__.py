@@ -298,7 +298,11 @@ class AsyncTyper(typer.Typer):
 
             # Get the original function's signature
             original_sig = inspect.signature(func)
-            resolved_hints = get_type_hints(func)
+            # include_extras=True preserves Annotated[..., typer.Option(...)]
+            # metadata — without it get_type_hints() strips the Annotated
+            # extras and every Annotated-style parameter degrades to a
+            # positional argument / auto-named option.
+            resolved_hints = get_type_hints(func, include_extras=True)
             new_params = []
 
             for param in original_sig.parameters.values():

@@ -66,15 +66,21 @@ async def create_service_preset(
     ] = "2Gi",
     image_version: Annotated[
         Optional[str],
-        typer.Option("--image-version", help="Default image tag for services created from this preset"),
+        typer.Option(
+            "--image-version", help="Default image tag for services created from this preset"
+        ),
     ] = None,
     resolution: Annotated[
         Optional[str],
-        typer.Option("--resolution", "-r", help="Default desktop resolution (remote-desktop only)"),
+        typer.Option(
+            "--resolution", "-r", help="Default desktop resolution (remote-desktop only)"
+        ),
     ] = None,
     slurm_cluster: Annotated[
         Optional[str],
-        typer.Option("--slurm-cluster", help="Slurm cluster to attach (cloud-shell/remote-desktop)"),
+        typer.Option(
+            "--slurm-cluster", help="Slurm cluster to attach (cloud-shell/remote-desktop)"
+        ),
     ] = None,
     description: Annotated[
         Optional[str],

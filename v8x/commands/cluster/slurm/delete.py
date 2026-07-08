@@ -80,9 +80,7 @@ async def delete_slurm_cluster(
             )
         elif response.status_code == 404:
             data = response.json() or {}
-            console.print(
-                f"[yellow]Not found:[/yellow] {data.get('detail', 'Cluster not found')}"
-            )
+            console.print(f"[yellow]Not found:[/yellow] {data.get('detail', 'Cluster not found')}")
         elif response.status_code == 409:
             data = response.json() or {}
             console.print(
