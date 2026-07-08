@@ -37,12 +37,14 @@ async def list_user_services(
             help="Name of the cluster",
         ),
     ],
-    service_type: Annotated[
+    workload: Annotated[
         str | None,
         typer.Option(
+            "--workload",
+            "-w",
             "--type",
             "-t",
-            help=f"Filter by service type: {', '.join(sorted(USER_SERVICES))}",
+            help=f"Filter by workload: {', '.join(sorted(USER_SERVICES))}",
         ),
     ] = None,
     username: Annotated[
@@ -72,7 +74,7 @@ async def list_user_services(
         v8x cluster service list --cluster my-cluster
 
         # List only your cloud shells
-        v8x cluster service list -c my-cluster --type cloud-shell
+        v8x cluster service list -c my-cluster --workload cloud-shell
 
         # List services for a specific user (admin)
         v8x cluster service list -c my-cluster --username alice
@@ -88,8 +90,8 @@ async def list_user_services(
         if persona and persona.identity_data and persona.identity_data.username:
             username = persona.identity_data.username
 
-    if service_type:
-        service_type = service_type.lower()
+    if workload:
+        workload = workload.lower()
 
     try:
         console.print("[dim]Fetching services...[/dim]")
@@ -97,7 +99,7 @@ async def list_user_services(
         response = await user_service_sdk.list(
             ctx,
             cluster_name=cluster_name,
-            service_type=service_type,
+            workload=workload,
             username=username,
         )
 
@@ -112,9 +114,10 @@ async def list_user_services(
 
             # Create a table
             table = Table(title=f"User Services ({count} total)")
-            table.add_column("Type", style="cyan")
+            table.add_column("Workload", style="cyan")
             table.add_column("ID", style="dim")
             table.add_column("Username", style="green")
+            table.add_column("Preset", style="magenta")
             table.add_column("Status")
             table.add_column("Replicas")
             table.add_column("URL", style="dim")
@@ -128,9 +131,10 @@ async def list_user_services(
                     url = url[:37] + "..."
 
                 table.add_row(
-                    svc.get("service_type", "N/A"),
+                    svc.get("workload", "N/A"),
                     svc.get("id", "N/A")[:8],  # Show first 8 chars of UUID
                     svc.get("username", "N/A"),
+                    svc.get("preset") or "-",
                     f"[{status_style}]{svc.get('status', 'N/A')}[/{status_style}]",
                     replicas,
                     url,

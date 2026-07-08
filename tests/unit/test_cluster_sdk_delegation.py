@@ -614,7 +614,13 @@ async def test_create_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
     sdk_create = AsyncMock(
         return_value=ClusterServiceResponse(
             status_code=200,
-            data={"id": "svc-1", "url": "https://desktop", "status": "Running"},
+            data={
+                "id": "svc-1",
+                "url": "https://desktop",
+                "status": "Running",
+                "preset": "desktop-lg",
+                "options": {"image": "turbovnc:noble-3.3-0.2", "resolution": "2560x1440"},
+            },
             text="",
         )
     )
@@ -625,27 +631,22 @@ async def test_create_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
 
     await _unwrap_command(create_user_service)(
         ctx,
-        service_type="remote-desktop",
+        workload="remote-desktop",
         cluster_name="cluster-a",
+        name=None,
+        preset="desktop-lg",
+        image="noble-3.3-0.2",
         resolution="2560x1440",
-        source_namespace="vantage-rook-ceph",
-        source_pvc_name="cephfs-user-homes",
-        node_group="desktop-lg",
-        instance_type=None,
-        image_version="1.2.3",
     )
 
     sdk_create.assert_awaited_once_with(
         ctx,
         cluster_name="cluster-a",
-        service_type="remote-desktop",
-        username="alice",
+        workload="remote-desktop",
+        name=None,
+        preset="desktop-lg",
+        image="noble-3.3-0.2",
         resolution="2560x1440",
-        source_namespace="vantage-rook-ceph",
-        source_pvc_name="cephfs-user-homes",
-        node_group="desktop-lg",
-        instance_type=None,
-        image_version="1.2.3",
     )
     ctx.obj.formatter.success.assert_called_once()
     ctx.obj.formatter.render_error.assert_not_called()
@@ -657,7 +658,7 @@ async def test_get_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPatch
     sdk_get = AsyncMock(
         return_value=ClusterServiceResponse(
             status_code=200,
-            data={"service_type": "cloud-shell", "id": "svc-1", "name": "shell"},
+            data={"workload": "cloud-shell", "id": "svc-1", "name": "shell"},
             text="",
         )
     )
@@ -668,7 +669,7 @@ async def test_get_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPatch
 
     await _unwrap_command(get_user_service)(
         ctx,
-        service_type="cloud-shell",
+        workload="cloud-shell",
         service_id="svc-1",
         cluster_name="cluster-a",
     )
@@ -676,7 +677,7 @@ async def test_get_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPatch
     sdk_get.assert_awaited_once_with(
         ctx,
         cluster_name="cluster-a",
-        service_type="cloud-shell",
+        workload="cloud-shell",
         service_id="svc-1",
     )
     ctx.obj.formatter.render_error.assert_not_called()
@@ -692,10 +693,11 @@ async def test_list_user_services_delegates_to_sdk(monkeypatch: pytest.MonkeyPat
             data={
                 "services": [
                     {
-                        "service_type": "cloud-shell",
+                        "workload": "cloud-shell",
                         "id": "svc-1",
                         "username": "alice",
                         "status": "Running",
+                        "preset": "shell-sm",
                     }
                 ],
                 "count": 1,
@@ -711,7 +713,7 @@ async def test_list_user_services_delegates_to_sdk(monkeypatch: pytest.MonkeyPat
     await _unwrap_command(list_user_services)(
         ctx,
         cluster_name="cluster-a",
-        service_type="cloud-shell",
+        workload="cloud-shell",
         username=None,
         all_users=False,
     )
@@ -719,7 +721,7 @@ async def test_list_user_services_delegates_to_sdk(monkeypatch: pytest.MonkeyPat
     sdk_list.assert_awaited_once_with(
         ctx,
         cluster_name="cluster-a",
-        service_type="cloud-shell",
+        workload="cloud-shell",
         username="alice",
     )
     ctx.obj.formatter.render_error.assert_not_called()
@@ -742,7 +744,7 @@ async def test_delete_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
 
     await _unwrap_command(delete_user_service)(
         ctx,
-        service_type="pvc-viewer",
+        workload="pvc-viewer",
         service_id="svc-1",
         cluster_name="cluster-a",
         force=True,
@@ -751,7 +753,7 @@ async def test_delete_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
     sdk_delete.assert_awaited_once_with(
         ctx,
         cluster_name="cluster-a",
-        service_type="pvc-viewer",
+        workload="pvc-viewer",
         service_id="svc-1",
     )
     ctx.obj.formatter.success.assert_called_once()
