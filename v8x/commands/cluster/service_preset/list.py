@@ -77,7 +77,7 @@ async def list_service_presets(
             table.add_column("Description", style="dim")
 
             for p in items:
-                sizing = p.get("sizing") or {}
+                sizing = (p.get("options") or {}).get("sizing") or {}
                 gpu = sizing.get("gpu") or {}
                 table.add_row(
                     p.get("kind", "?"),
