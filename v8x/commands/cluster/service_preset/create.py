@@ -17,12 +17,130 @@ from typing import Optional
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
-from vantage_sdk.workbench.service_preset import service_preset_sdk
+from vantage_sdk.workbench.service_preset import PRESET_KINDS, service_preset_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
 from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
+
+# Kinds whose options are built from the shared sizing flags alone
+# (everything kind-specific beyond sizing needs --body).
+_SIZING_ONLY_KINDS = {"sweep", "tensorboard", "pipeline", "model", "trainjob", "inference"}
+
+
+def _parse_body_json(body_json: str, name: str) -> dict:
+    """Parse a raw --body payload, defaulting the name from the argument."""
+    try:
+        preset = json.loads(body_json)
+    except json.JSONDecodeError as exc:
+        raise Abort(
+            f"--body is not valid JSON: {exc}",
+            subject="Invalid Preset Body",
+        ) from exc
+    preset.setdefault("name", name)
+    return preset
+
+
+def _build_user_service_options(
+    *,
+    workloads: Optional[list[str]],
+    sizing: dict,
+    image_version: Optional[str],
+    resolution: Optional[str],
+    slurm_cluster: Optional[str],
+) -> dict:
+    if not workloads:
+        raise Abort(
+            "Provide at least one --workload (or a raw --body payload).",
+            subject="Missing Workload",
+        )
+    options: dict = {
+        "service_types": [w.lower() for w in workloads],
+        "sizing": sizing,
+    }
+    if image_version:
+        options["image_version"] = image_version
+    if resolution:
+        options["resolution"] = resolution
+    if slurm_cluster:
+        options["slurm_cluster"] = slurm_cluster
+    return options
+
+
+def _build_sizing_only_options(
+    *,
+    kind: str,
+    sizing: dict,
+    scratch_size: Optional[str],
+    runtime: Optional[str],
+) -> dict:
+    options: dict = {"sizing": sizing}
+    if kind == "model" and scratch_size:
+        options["scratch_size"] = scratch_size
+    if kind == "trainjob":
+        if not runtime:
+            raise Abort(
+                "kind=trainjob requires --runtime (ClusterTrainingRuntime name).",
+                subject="Missing Runtime",
+            )
+        options["runtime_ref"] = {"name": runtime}
+    elif kind == "sweep" and runtime:
+        options["runtime_ref"] = {"name": runtime}
+    return options
+
+
+def _build_preset_body(
+    *,
+    kind: str,
+    name: str,
+    workloads: Optional[list[str]],
+    node_group: Optional[str],
+    cpu: str,
+    memory: str,
+    gpu_count: int,
+    scratch_size: Optional[str],
+    runtime: Optional[str],
+    image_version: Optional[str],
+    resolution: Optional[str],
+    slurm_cluster: Optional[str],
+    description: Optional[str],
+) -> dict:
+    """Assemble an envelope+options preset body from the CLI flags."""
+    kind = kind.lower()
+    sizing: dict = {"cpu": cpu, "memory": memory}
+    if gpu_count > 0:
+        sizing["gpu"] = {"count": gpu_count}
+    if node_group:
+        sizing["node_group"] = node_group
+
+    if kind == "user-service":
+        options = _build_user_service_options(
+            workloads=workloads,
+            sizing=sizing,
+            image_version=image_version,
+            resolution=resolution,
+            slurm_cluster=slurm_cluster,
+        )
+    elif kind in _SIZING_ONLY_KINDS:
+        options = _build_sizing_only_options(
+            kind=kind, sizing=sizing, scratch_size=scratch_size, runtime=runtime
+        )
+    else:
+        raise Abort(
+            f"kind '{kind}' cannot be built from flags — pass a raw --body payload.",
+            subject="Unsupported Preset Kind",
+        )
+
+    preset = {
+        "kind": kind,
+        "name": name,
+        "display_name": name,
+        "options": options,
+    }
+    if description:
+        preset["description"] = description
+    return preset
 
 
 @handle_abort
@@ -43,6 +161,14 @@ async def create_service_preset(
             help="Name of the parent K8s cluster",
         ),
     ],
+    kind: Annotated[
+        str,
+        typer.Option(
+            "--kind",
+            "-k",
+            help=f"Preset kind: {', '.join(sorted(PRESET_KINDS - {'session'}))}",
+        ),
+    ] = "user-service",
     workloads: Annotated[
         Optional[list[str]],
         typer.Option(
@@ -64,6 +190,25 @@ async def create_service_preset(
         str,
         typer.Option("--memory", help="Memory request (K8s quantity, e.g. '2Gi')"),
     ] = "2Gi",
+    gpu_count: Annotated[
+        int,
+        typer.Option("--gpu-count", help="GPU count (0 = CPU-only)"),
+    ] = 0,
+    scratch_size: Annotated[
+        Optional[str],
+        typer.Option(
+            "--scratch-size",
+            help="Scratch volume for artifact staging, e.g. '100Gi' (kind=model only)",
+        ),
+    ] = None,
+    runtime: Annotated[
+        Optional[str],
+        typer.Option(
+            "--runtime",
+            help="ClusterTrainingRuntime name (required for kind=trainjob; "
+            "optional default for kind=sweep)",
+        ),
+    ] = None,
     image_version: Annotated[
         Optional[str],
         typer.Option(
@@ -97,55 +242,49 @@ async def create_service_preset(
 ):
     r"""Create a service preset on a Vantage cluster.
 
-    Without --body this builds a kind=user-service preset from the flags.
-    Use --body to create any other preset kind (inference, trainjob, session)
-    from a raw JSON payload.
+    Presets share a flat envelope (name, display_name, description, kind)
+    plus a kind-specific 'options' object. Without --body this builds the
+    options from the flags: kind=user-service uses --workload/--resolution/
+    --slurm-cluster; sizing-only kinds (sweep, tensorboard, pipeline, model,
+    trainjob, inference) use the shared sizing flags. Use --body for full
+    control over any kind (session, sweep budgets, inference scale knobs, …).
 
     Examples:
-        v8x cluster service-preset create shell-sm -c my-cluster \\
+        v8x cluster service-preset create shell-sm -c my-cluster \
             --workload cloud-shell --node-group shell-sm --cpu 1 --memory 2Gi
 
-        v8x cluster service-preset create desktop-lg -c my-cluster \\
+        v8x cluster service-preset create desktop-lg -c my-cluster \
             -w remote-desktop -n desktop-lg --cpu 4 --memory 8Gi -r 1920x1080
 
-        v8x cluster service-preset create vllm-7b -c my-cluster \\
-            --body '{"kind": "inference", "name": "vllm-7b", "flavor": "llm", ...}'
+        v8x cluster service-preset create sweep-md -c my-cluster \
+            --kind sweep --node-group sweep-md --cpu 2 --memory 8Gi
+
+        v8x cluster service-preset create model-lg -c my-cluster \
+            --kind model -n model-lg --cpu 4 --memory 16Gi --scratch-size 100Gi
+
+        v8x cluster service-preset create vllm-7b -c my-cluster \
+            --body '{"kind": "inference", "name": "vllm-7b", "options": {"flavor": "llm", ...}}'
     """
     console = ctx.obj.console
 
     if body_json:
-        try:
-            preset = json.loads(body_json)
-        except json.JSONDecodeError as exc:
-            raise Abort(
-                f"--body is not valid JSON: {exc}",
-                subject="Invalid Preset Body",
-            ) from exc
-        preset.setdefault("name", name)
+        preset = _parse_body_json(body_json, name)
     else:
-        if not workloads:
-            raise Abort(
-                "Provide at least one --workload (or a raw --body payload).",
-                subject="Missing Workload",
-            )
-        sizing: dict = {"cpu": cpu, "memory": memory}
-        if node_group:
-            sizing["node_group"] = node_group
-        preset = {
-            "kind": "user-service",
-            "name": name,
-            "display_name": name,
-            "service_types": [w.lower() for w in workloads],
-            "sizing": sizing,
-        }
-        if description:
-            preset["description"] = description
-        if image_version:
-            preset["image_version"] = image_version
-        if resolution:
-            preset["resolution"] = resolution
-        if slurm_cluster:
-            preset["slurm_cluster"] = slurm_cluster
+        preset = _build_preset_body(
+            kind=kind,
+            name=name,
+            workloads=workloads,
+            node_group=node_group,
+            cpu=cpu,
+            memory=memory,
+            gpu_count=gpu_count,
+            scratch_size=scratch_size,
+            runtime=runtime,
+            image_version=image_version,
+            resolution=resolution,
+            slurm_cluster=slurm_cluster,
+            description=description,
+        )
 
     try:
         console.print(
