@@ -85,6 +85,12 @@ applications:
     base: &noble ubuntu@24.04
     constraints: &slurm-vm cores=2 mem=4096M root-disk=20G virt-type=virtual-machine
     num_units: 1
+    options:
+      # "Login-only SSSD": render use_client_ids / use_jwt_client_ids / enable_nss_slurm into
+      # slurm.conf + tell each slurmd to wire up nss_slurm, so the control plane + compute nodes
+      # resolve POSIX identity from the launch credential / client and SSSD runs ONLY on sackd.
+      # The sssd relations below are scoped to match (Phase 1: sackd + slurmctld + slurmrestd).
+      use-client-ids: true
 
   slurmdbd:
     charm: vantage-slurmdbd
@@ -254,11 +260,15 @@ relations:
   # CONTROLLER. Without SSSD on slurmctld, `srun` fails with "Error generating job credential"
   # (slurm_cred_create: fetch_identity() failed). slurmdbd (accounting) and slurmrestd (REST user
   # mapping) resolve users too, so SSSD belongs on every slurm node, not just compute + login.
-  - [sssd:juju-info, slurmd:juju-info]
+  # LOGIN-ONLY SSSD (slurmctld `use-client-ids: true` above). Only nodes that actually getpwnam keep
+  # SSSD: sackd (interactive ssh + submit) and slurmctld (mints the cred; the REST/use_jwt_client_ids
+  # path falls back to getpwnam here until the Vantage JWT carries uid/gid/id — Phase 2). slurmd uses
+  # nss_slurm; slurmdbd trusts client ids; slurmrestd never resolves users itself (it forwards the
+  # JWT username to slurmctld) — so none of those need SSSD. See
+  # docs/plans/2026-06-29-sssd-login-only-use-client-ids.md. To revert: `use-client-ids: false` and
+  # re-add `[sssd:juju-info, slurmd|slurmdbd|slurmrestd:juju-info]`.
   - [sssd:juju-info, sackd:juju-info]
   - [sssd:juju-info, slurmctld:juju-info]
-  - [sssd:juju-info, slurmdbd:juju-info]
-  - [sssd:juju-info, slurmrestd:juju-info]
 
   # --- Vantage agent: co-located on the sackd login node (needs Slurm client binaries; its
   #     auth-proxy reaches slurmrestd over the network via slurmrestd-fqdn — header step 1),
@@ -303,4 +313,3 @@ relations:
   - [apptainer:oci-runtime, slurmctld:oci-runtime]
   - [apptainer:juju-info, sackd:juju-info]
   - [apptainer:juju-info, slurmd:juju-info]
-
