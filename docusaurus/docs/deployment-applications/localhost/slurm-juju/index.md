@@ -6,8 +6,8 @@ description: Deploy a full Charmed HPC Slurm cluster into an existing Juju model
 The `slurm-juju` deployment application deploys a **complete Charmed HPC Slurm cluster** — the
 [vantage-slurm-charm-operators](https://github.com/vantagecompute/vantage-slurm-charm-operators)
 Topology‑A bundle — into an **existing Juju model**, then wires the single Vantage secret the cluster
-needs. Unlike [`slurm-multipass`](../multipass) (a single VM) or the
-[LXD/Juju extension apps](../charmed-hpc), `slurm-juju` brings up the full control plane, compute,
+needs. Unlike [`slurm-multipass`](../multipass/index.md) (a single VM) or the
+[LXD/Juju extension apps](../charmed-hpc/index.md), `slurm-juju` brings up the full control plane, compute,
 accounting, identity, shared storage, and observability as Juju applications.
 
 `slurm-juju` does **no Juju provisioning**. It assumes you already have a bootstrapped controller and
