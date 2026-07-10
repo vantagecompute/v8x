@@ -1574,7 +1574,7 @@ wheels = [
 
 [[package]]
 name = "v8x"
-version = "0.1.8"
+version = "0.1.22"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
