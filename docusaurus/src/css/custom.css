@@ -2,61 +2,37 @@
  * v8x Documentation — project-specific style overrides.
  *
  * The shared Vantage design system (tokens, typography, dark/light themes,
- * sidebar, TOC, admonitions, code blocks, etc.) is loaded automatically by
- * @vantagecompute/docusaurus-theme.  This file contains only v8x-specific
- * customisations that layer on top.
+ * sidebar, TOC, admonitions, code blocks, navbar, footer, etc.) is loaded
+ * automatically by @vantagecompute/docusaurus-theme.
+ *
+ * This file sets theme variables for v8x branding and adds only the
+ * layout tweaks unique to v8x (centered title, PyPI/GitHub buttons).
  */
 
 @import './commands.css';
 
-/* ── v8x brand overrides ───────────────────────────────────────────── */
-/* Override the shared theme's prism themes in themeConfig instead.
-   Keep custom navbar & button styles below since v8x uses a different
-   navbar design (centered title, PyPI/GitHub buttons). */
-
-/* Navbar styling — v8x purple background with centered title */
-.navbar {
-  background-color: var(--vantage-purple) !important;
-  border-bottom: 1px solid var(--vantage-purple-dark);
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 1000 !important;
+/* ── v8x brand — theme variable overrides ──────────────────────────── */
+:root {
+  --vantage-navbar-bg:          var(--vantage-purple);
+  --vantage-navbar-border:      var(--vantage-purple-dark);
+  --vantage-navbar-link-hover:  #e5e7eb;
+  --vantage-footer-bg:          var(--vantage-purple-dark);
+  --vantage-footer-link-hover:  var(--vantage-button);
 }
 
+/* ── v8x navbar layout — centered title ────────────────────────────── */
 .navbar__inner {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  max-width: none !important;
-  padding: 0 1rem !important;
-  position: relative !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: none;
+  padding: 0 1rem;
+  position: relative;
 }
 
-.navbar__inner .navbar__brand { order: 1 !important; justify-self: flex-start !important; }
-.navbar__inner .navbar__items { order: 3 !important; justify-self: flex-end !important; }
-
-.navbar__brand {
-  display: flex !important;
-  align-items: center !important;
-  flex-shrink: 0 !important;
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-.navbar__logo {
-  height: auto !important;
-  width: auto !important;
-  max-height: 40px !important;
-  max-width: 120px !important;
-  margin-right: 0.5rem !important;
-  display: block !important;
-  position: relative !important;
-}
-
-@media (max-width: 768px)  { .navbar__logo { display: none !important; } }
-@media (max-width: 480px)  { .navbar__logo { display: none !important; } }
-@media (max-width: 414px)  { .navbar__logo { display: none !important; } }
+.navbar__inner .navbar__brand { order: 1; }
+.navbar__inner .navbar__items { order: 3; }
 
 .navbar__brand .navbar__title,
 .navbar__brand b.navbar__title,
@@ -75,31 +51,21 @@
   white-space: nowrap;
 }
 
-.navbar__items { display: flex !important; align-items: center !important; gap: 8px !important; margin-left: auto !important; }
-.navbar__item  { color: white !important; }
-.navbar__link  { color: white !important; }
-.navbar__link:hover { color: #e5e7eb !important; }
-
-/* PyPI and GitHub buttons */
+/* ── PyPI and GitHub buttons ───────────────────────────────────────── */
 .pypi-button,
 .github-button {
   background-color: var(--vantage-button) !important;
   color: white !important;
-  border-radius: 6px !important;
-  padding: 8px 16px !important;
-  margin: 0 4px !important;
-  border: none !important;
-  font-weight: 500 !important;
-  text-decoration: none !important;
+  border-radius: 6px;
+  padding: 8px 16px;
+  margin: 0 4px;
+  border: none;
+  font-weight: 500;
+  text-decoration: none;
 }
 .pypi-button:hover,
 .github-button:hover {
   background-color: #9084ff !important;
   color: white !important;
-  text-decoration: none !important;
+  text-decoration: none;
 }
-
-/* Footer */
-.footer--dark { background-color: var(--vantage-purple-dark) !important; }
-.footer__link-item:hover { color: var(--vantage-button) !important; }
-.footer__logo { height: auto !important; width: auto !important; max-height: 60px; }
