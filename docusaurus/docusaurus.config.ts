@@ -2,6 +2,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import * as fs from 'fs';
 import * as path from 'path';
+import {staticDir} from '@vantagecompute/docusaurus-theme';
 
 // Function to read version from pyproject.toml
 function getVersionFromPyproject(): string {
@@ -51,7 +52,10 @@ const config: Config = {
       onBrokenMarkdownLinks: 'warn'
     }
   },
-  themes: ['@docusaurus/theme-mermaid'],
+  themes: ['@docusaurus/theme-mermaid', '@vantagecompute/docusaurus-theme'],
+
+  staticDirectories: ['static', staticDir],
+
   presets: [
     [
       'classic',
