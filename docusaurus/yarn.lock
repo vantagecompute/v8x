@@ -3293,6 +3293,14 @@
     d3-selection "^3.0.0"
     d3-transition "^3.0.1"
 
+"@vantagecompute/docusaurus-theme@^0.2.2":
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/@vantagecompute/docusaurus-theme/-/docusaurus-theme-0.2.2.tgz#1ba3cb78c37f614dce2ad0d72d4af01d6efc1712"
+  integrity sha512-DFPiWavCbaHsrpWYqRKmVAf/hVGksQUE+UykNXO3pAr0FR85PvIwq3G/V5JeAGjll7OL2gHFL6qgW8p8v7wcsQ==
+  dependencies:
+    clsx "^2.1.1"
+    unist-util-visit "^5.1.0"
+
 "@webassemblyjs/ast@1.14.1", "@webassemblyjs/ast@^1.14.1":
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/@webassemblyjs/ast/-/ast-1.14.1.tgz#a9f6a07f2b03c95c8d38c4536a1fdfb521ff55b6"
@@ -9683,7 +9691,7 @@ unist-util-visit-parents@^6.0.0:
     "@types/unist" "^3.0.0"
     unist-util-is "^6.0.0"
 
-unist-util-visit@^5.0.0:
+unist-util-visit@^5.0.0, unist-util-visit@^5.1.0:
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/unist-util-visit/-/unist-util-visit-5.1.0.tgz#9a2a28b0aa76a15e0da70a08a5863a2f060e2468"
   integrity sha512-m+vIdyeCOpdr/QeQCu2EzxX/ohgS8KbnPDgFni4dQsfSCtpz8UqDyY5GjRru8PDKuYn7Fq19j1CQ+nJSsGKOzg==
