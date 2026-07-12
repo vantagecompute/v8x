@@ -55,7 +55,8 @@ async def create_compute_pool(
             "-w",
             help="Workload type for auto-populating taints/labels "
             "(slurm-admin, slurm-compute, kubeflow-workspace, kubeflow-train, "
-            "kubeflow-inference, ray, mlflow, remote-desktop, cloud-shell, pvc-viewer, general)",
+            "kubeflow-inference, ray, mlflow, dynamo-frontend, dynamo-worker, "
+            "remote-desktop, cloud-shell, pvc-viewer, general)",
         ),
     ] = None,
     min_size: Annotated[
