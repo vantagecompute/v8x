@@ -573,34 +573,37 @@ This document provides a comprehensive reference for all available CLI commands 
 │ --help          Show this message and exit.                                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
-│ create              Create a new Vantage cluster.                            │
-│ delete              Delete a Vantage cluster and optionally cleanup          │
-│                     associated app deployments.                              │
-│ extend              Extend a Vantage cluster with bare-metal compute nodes.  │
-│ get                 Get details of a specific Vantage cluster.               │
-│ list                List all Vantage clusters.                               │
-│ update              Update an existing Vantage cluster.                      │
-│ compute-pool        Manage compute pools (autoscaler pools) within a Vantage │
-│                     K8s cluster.                                             │
-│ federation          Manage Vantage compute federations for distributed       │
-│                     workloads.                                               │
-│ preset              Manage inference presets within a Vantage K8s cluster.   │
-│ inference-endpoint  Manage inference endpoints (predictive &amp; LLM) on a       │
-│                     cluster.                                                 │
-│ model-registry      Manage models in the cluster model registry (onboard,    │
-│                     list, version, delete).                                  │
-│ namespace           Manage namespaces on a Vantage K8s cluster.              │
-│ network             Manage Multus networks on a Vantage K8s cluster.         │
-│ kubeflow            Manage Kubeflow ML platform on a Vantage K8s cluster.    │
-│ secret              Manage secrets (HuggingFace tokens, S3 credentials) in   │
-│                     your profile namespace.                                  │
-│ service             Enable, disable, update, or manage user services on a    │
-│                     Vantage cluster.                                         │
-│ service-preset      Manage unified service presets (inference, trainjob,     │
-│                     user-service, session).                                  │
-│ slurm               Manage Slurm clusters within a Vantage K8s cluster.      │
-│ workspace-preset    Manage workspace presets (WorkspaceKinds) that define    │
-│                     IDE templates for Kubeflow workspaces.                   │
+│ create                Create a new Vantage cluster.                          │
+│ delete                Delete a Vantage cluster and optionally cleanup        │
+│                       associated app deployments.                            │
+│ extend                Extend a Vantage cluster with bare-metal compute       │
+│                       nodes.                                                 │
+│ get                   Get details of a specific Vantage cluster.             │
+│ list                  List all Vantage clusters.                             │
+│ update                Update an existing Vantage cluster.                    │
+│ compute-pool          Manage compute pools (autoscaler pools) within a       │
+│                       Vantage K8s cluster.                                   │
+│ configuration-preset  Manage configuration presets (kind-specific            │
+│                       CR-assembly options; sizing lives in sizing-presets).  │
+│ federation            Manage Vantage compute federations for distributed     │
+│                       workloads.                                             │
+│ preset                Manage inference presets within a Vantage K8s cluster. │
+│ inference-endpoint    Manage inference endpoints (predictive &amp; LLM) on a     │
+│                       cluster.                                               │
+│ model-registry        Manage models in the cluster model registry (onboard,  │
+│                       list, version, delete).                                │
+│ namespace             Manage namespaces on a Vantage K8s cluster.            │
+│ network               Manage Multus networks on a Vantage K8s cluster.       │
+│ kubeflow              Manage Kubeflow ML platform on a Vantage K8s cluster.  │
+│ secret                Manage secrets (HuggingFace tokens, S3 credentials) in │
+│                       your profile namespace.                                │
+│ service               Enable, disable, update, or manage user services on a  │
+│                       Vantage cluster.                                       │
+│ sizing-preset         Manage sizing presets (pod shapes:                     │
+│                       cpu/memory/gpu/compute pool) per workload kind.        │
+│ slurm                 Manage Slurm clusters within a Vantage K8s cluster.    │
+│ workspace-preset      Manage workspace presets (WorkspaceKinds) that define  │
+│                       IDE templates for Kubeflow workspaces.                 │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 
@@ -2087,12 +2090,13 @@ This document provides a comprehensive reference for all available CLI commands 
      # Create a PVC viewer with workload defaults
      v8x cluster service create pvc-viewer --cluster my-cluster
 
-     # Create a cloud shell from a preset
-     v8x cluster service create cloud-shell -c my-cluster --preset shell-sm
+     # Create a cloud shell from the split presets
+     v8x cluster service create cloud-shell -c my-cluster \\
+         --sizing-preset shell-sm --configuration-preset shell-sm
 
-     # Create a remote desktop from a preset with a resolution override
-     v8x cluster service create remote-desktop -c my-cluster -p desktop-md -r
- 2560x1440
+     # Create a remote desktop with a resolution override
+     v8x cluster service create remote-desktop -c my-cluster \\
+         -p desktop-md -C desktop-md -r 2560x1440
 
      # Create a cloud shell with a specific image tag
      v8x cluster service create cloud-shell -c my-cluster --image resolute-0.2
@@ -2103,23 +2107,29 @@ This document provides a comprehensive reference for all available CLI commands 
 │                          [required]                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ *  --cluster     -c      TEXT  Name of the cluster [required]                │
-│    --name                TEXT  Optional custom service name (auto-generated  │
-│                                when omitted).                                │
-│    --preset      -p      TEXT  UserServicePreset name supplying sizing, node │
-│                                group, Slurm attachment, and extra labels     │
-│                                (see 'GET                                     │
-│                                /vdeployer/service-presets/user-service').    │
-│    --image               TEXT  Image override: a bare tag replaces the       │
-│                                version on the workload's default registry    │
-│                                image; a value containing '/' or ':' is used  │
-│                                as a full reference.                          │
-│    --resolution  -r      TEXT  Desktop resolution for remote-desktop (e.g.,  │
-│                                1920x1080).                                   │
-│    --json        -j            Output in JSON format                         │
-│    --verbose     -v            Enable verbose terminal output                │
-│    --profile     -p      TEXT  Profile name to use                           │
-│    --help                      Show this message and exit.                   │
+│ *  --cluster               -c      TEXT  Name of the cluster [required]      │
+│    --name                          TEXT  Optional custom service name        │
+│                                          (auto-generated when omitted).      │
+│    --sizing-preset         -p      TEXT  Sizing preset name supplying        │
+│                                          cpu/memory and the compute pool     │
+│                                          (see 'v8x cluster sizing-preset     │
+│                                          list --kind user-service').         │
+│    --configuration-preset  -C      TEXT  Configuration preset name supplying │
+│                                          image version, Slurm attachment,    │
+│                                          and extra labels (see 'v8x cluster  │
+│                                          configuration-preset list --kind    │
+│                                          user-service').                     │
+│    --image                         TEXT  Image override: a bare tag replaces │
+│                                          the version on the workload's       │
+│                                          default registry image; a value     │
+│                                          containing '/' or ':' is used as a  │
+│                                          full reference.                     │
+│    --resolution            -r      TEXT  Desktop resolution for              │
+│                                          remote-desktop (e.g., 1920x1080).   │
+│    --json                  -j            Output in JSON format               │
+│    --verbose               -v            Enable verbose terminal output      │
+│    --profile               -p      TEXT  Profile name to use                 │
+│    --help                                Show this message and exit.         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 
