@@ -14,6 +14,7 @@
 from v8x import AsyncTyper
 
 from .compute_pool import compute_pool_app
+from .configuration_preset import configuration_preset_app
 from .create import create_cluster
 from .delete import delete_cluster
 from .extend import extend_cluster
@@ -28,7 +29,7 @@ from .namespace import namespace_app
 from .network import network_app
 from .secret import secret_app
 from .service import service_app
-from .service_preset import service_preset_app
+from .sizing_preset import sizing_preset_app
 from .slurm import slurm_app
 from .update import update_cluster
 from .workspace_preset import workspace_preset_app
@@ -51,6 +52,7 @@ cluster_app.command("update")(update_cluster)
 
 # Add nested command groups
 cluster_app.add_typer(compute_pool_app, name="compute-pool")
+cluster_app.add_typer(configuration_preset_app, name="configuration-preset")
 cluster_app.add_typer(federation_app, name="federation")
 cluster_app.add_typer(inference_preset_app, name="preset")
 cluster_app.add_typer(inference_endpoint_app, name="inference-endpoint")
@@ -60,6 +62,6 @@ cluster_app.add_typer(network_app, name="network")
 cluster_app.add_typer(kubeflow_app, name="kubeflow")
 cluster_app.add_typer(secret_app, name="secret")
 cluster_app.add_typer(service_app, name="service")
-cluster_app.add_typer(service_preset_app, name="service-preset")
+cluster_app.add_typer(sizing_preset_app, name="sizing-preset")
 cluster_app.add_typer(slurm_app, name="slurm")
 cluster_app.add_typer(workspace_preset_app, name="workspace-preset")

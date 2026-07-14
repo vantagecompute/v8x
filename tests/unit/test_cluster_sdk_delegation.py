@@ -618,7 +618,8 @@ async def test_create_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
                 "id": "svc-1",
                 "url": "https://desktop",
                 "status": "Running",
-                "preset": "desktop-lg",
+                "sizing_preset": "desktop-lg",
+                "configuration_preset": "desktop-lg",
                 "options": {"image": "turbovnc:noble-3.3-0.2", "resolution": "2560x1440"},
             },
             text="",
@@ -635,6 +636,7 @@ async def test_create_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
         cluster_name="cluster-a",
         name=None,
         preset="desktop-lg",
+        configuration_preset="desktop-lg",
         image="noble-3.3-0.2",
         resolution="2560x1440",
     )
@@ -644,7 +646,8 @@ async def test_create_user_service_delegates_to_sdk(monkeypatch: pytest.MonkeyPa
         cluster_name="cluster-a",
         workload="remote-desktop",
         name=None,
-        preset="desktop-lg",
+        sizing_preset="desktop-lg",
+        configuration_preset="desktop-lg",
         image="noble-3.3-0.2",
         resolution="2560x1440",
     )
@@ -697,7 +700,7 @@ async def test_list_user_services_delegates_to_sdk(monkeypatch: pytest.MonkeyPat
                         "id": "svc-1",
                         "username": "alice",
                         "status": "Running",
-                        "preset": "shell-sm",
+                        "sizing_preset": "shell-sm",
                     }
                 ],
                 "count": 1,
