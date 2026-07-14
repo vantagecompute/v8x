@@ -52,10 +52,19 @@ async def create_user_service(
     preset: Annotated[
         str | None,
         typer.Option(
-            "--preset",
+            "--sizing-preset",
             "-p",
-            help="UserServicePreset name supplying sizing, node group, Slurm attachment, "
-            "and extra labels (see 'GET /vdeployer/service-presets/user-service').",
+            help="Sizing preset name supplying cpu/memory and the compute pool "
+            "(see 'v8x cluster sizing-preset list --kind user-service').",
+        ),
+    ] = None,
+    configuration_preset: Annotated[
+        str | None,
+        typer.Option(
+            "--configuration-preset",
+            "-C",
+            help="Configuration preset name supplying image version, Slurm attachment, "
+            "and extra labels (see 'v8x cluster configuration-preset list --kind user-service').",
         ),
     ] = None,
     image: Annotated[
@@ -75,7 +84,7 @@ async def create_user_service(
         ),
     ] = None,
 ):
-    """Create a user service on a Vantage cluster.
+    r"""Create a user service on a Vantage cluster.
 
     Creates a user-specific service like PVC viewer, cloud shell, or remote desktop.
     The username is automatically determined from your authenticated identity, and
@@ -85,11 +94,13 @@ async def create_user_service(
         # Create a PVC viewer with workload defaults
         v8x cluster service create pvc-viewer --cluster my-cluster
 
-        # Create a cloud shell from a preset
-        v8x cluster service create cloud-shell -c my-cluster --preset shell-sm
+        # Create a cloud shell from the split presets
+        v8x cluster service create cloud-shell -c my-cluster \\
+            --sizing-preset shell-sm --configuration-preset shell-sm
 
-        # Create a remote desktop from a preset with a resolution override
-        v8x cluster service create remote-desktop -c my-cluster -p desktop-md -r 2560x1440
+        # Create a remote desktop with a resolution override
+        v8x cluster service create remote-desktop -c my-cluster \\
+            -p desktop-md -C desktop-md -r 2560x1440
 
         # Create a cloud shell with a specific image tag
         v8x cluster service create cloud-shell -c my-cluster --image resolute-0.2
@@ -117,7 +128,8 @@ async def create_user_service(
             cluster_name=cluster_name,
             workload=workload_lower,
             name=name,
-            preset=preset,
+            sizing_preset=preset,
+            configuration_preset=configuration_preset,
             image=image,
             resolution=resolution,
         )
@@ -128,8 +140,10 @@ async def create_user_service(
             console.print(f"  Service ID: {result.get('id', 'N/A')}")
             console.print(f"  URL: {result.get('url', 'N/A')}")
             console.print(f"  Status: {result.get('status', 'N/A')}")
-            if result.get("preset"):
-                console.print(f"  Preset: {result.get('preset')}")
+            if result.get("sizing_preset"):
+                console.print(f"  Sizing Preset: {result.get('sizing_preset')}")
+            if result.get("configuration_preset"):
+                console.print(f"  Configuration Preset: {result.get('configuration_preset')}")
             options = result.get("options") or {}
             if options.get("image"):
                 console.print(f"  Image: {options.get('image')}")

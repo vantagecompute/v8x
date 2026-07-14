@@ -77,8 +77,10 @@ async def get_user_service(
             console.print(f"  Username: {svc.get('username', 'N/A')}")
             console.print(f"  Status: {svc.get('status', 'N/A')}")
             console.print(f"  Replicas: {svc.get('ready_replicas', 0)}/{svc.get('replicas', 1)}")
-            if svc.get("preset"):
-                console.print(f"  Preset: {svc.get('preset')}")
+            if svc.get("sizing_preset"):
+                console.print(f"  Sizing Preset: {svc.get('sizing_preset')}")
+            if svc.get("configuration_preset"):
+                console.print(f"  Configuration Preset: {svc.get('configuration_preset')}")
             options = svc.get("options") or {}
             if options.get("image"):
                 console.print(f"  Image: {options.get('image')}")

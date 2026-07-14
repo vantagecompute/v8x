@@ -117,7 +117,8 @@ async def list_user_services(
             table.add_column("Workload", style="cyan")
             table.add_column("ID", style="dim")
             table.add_column("Username", style="green")
-            table.add_column("Preset", style="magenta")
+            table.add_column("Sizing Preset", style="magenta")
+            table.add_column("Config Preset", style="magenta")
             table.add_column("Status")
             table.add_column("Replicas")
             table.add_column("URL", style="dim")
@@ -134,7 +135,8 @@ async def list_user_services(
                     svc.get("workload", "N/A"),
                     svc.get("id", "N/A")[:8],  # Show first 8 chars of UUID
                     svc.get("username", "N/A"),
-                    svc.get("preset") or "-",
+                    svc.get("sizing_preset") or "-",
+                    svc.get("configuration_preset") or "-",
                     f"[{status_style}]{svc.get('status', 'N/A')}[/{status_style}]",
                     replicas,
                     url,

@@ -9,14 +9,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
-"""Get service preset command."""
-
-import json
+"""Delete sizing preset command."""
 
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
-from vantage_sdk.workbench.service_preset import PRESET_KINDS, service_preset_sdk
+from vantage_sdk.workbench.sizing_preset import SIZING_PRESET_KINDS, sizing_preset_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
@@ -28,11 +26,11 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 @attach_settings
 @attach_persona
 @attach_vantage_rest_client
-async def get_service_preset(
+async def delete_sizing_preset(
     ctx: typer.Context,
     kind: Annotated[
         str,
-        typer.Argument(help=f"Preset kind: {', '.join(sorted(PRESET_KINDS))}"),
+        typer.Argument(help=f"Preset kind: {', '.join(sorted(SIZING_PRESET_KINDS))}"),
     ],
     name: Annotated[
         str,
@@ -46,45 +44,52 @@ async def get_service_preset(
             help="Name of the parent K8s cluster",
         ),
     ],
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            "-f",
+            help="Skip confirmation prompt",
+        ),
+    ] = False,
 ):
-    """Get a single service preset by kind and name.
+    """Delete a sizing preset (idempotent server-side).
 
     Examples:
-        v8x cluster service-preset get user-service shell-sm -c my-cluster
-        v8x cluster service-preset get inference vllm-7b -c my-cluster
+        v8x cluster sizing-preset delete user-service shell-sm -c my-cluster --force
     """
     console = ctx.obj.console
 
-    try:
-        console.print(f"[dim]Fetching {kind} preset '{name}'...[/dim]")
+    if not force:
+        confirm = typer.confirm(f"Are you sure you want to delete {kind} sizing preset '{name}'?")
+        if not confirm:
+            console.print("[yellow]Deletion cancelled[/yellow]")
+            return
 
-        response = await service_preset_sdk.get(
+    try:
+        console.print(f"[dim]Deleting {kind} sizing preset '{name}'...[/dim]")
+
+        response = await sizing_preset_sdk.delete(
             ctx, cluster_name=cluster_name, kind=kind, name=name
         )
 
-        if response.status_code == 200:
-            console.print_json(json.dumps(response.json()))
-        elif response.status_code == 404:
-            raise Abort(
-                f"Preset not found: {kind}/{name}",
-                subject="Preset Not Found",
-                log_message=f"Preset not found: {kind}/{name}",
-            )
+        if response.status_code in (200, 204):
+            console.print(f"[green]✓[/green] Sizing preset '{name}' deleted")
         else:
             try:
                 error_detail = response.json().get("detail", response.text)
             except Exception:
                 error_detail = response.text or f"HTTP {response.status_code}"
             raise Abort(
-                f"Failed to get preset: {error_detail}",
-                subject="Preset Get Failed",
-                log_message=f"Preset get failed: {error_detail}",
+                f"Failed to delete sizing preset: {error_detail}",
+                subject="Preset Delete Failed",
+                log_message=f"Sizing preset delete failed: {error_detail}",
             )
 
     except Abort:
         raise
     except Exception as e:
         ctx.obj.formatter.render_error(
-            error_message=f"Failed to get {kind} preset '{name}'.",
+            error_message=f"Failed to delete {kind} sizing preset '{name}'.",
             details={"error": str(e)},
         )
