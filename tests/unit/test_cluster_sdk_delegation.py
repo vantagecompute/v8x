@@ -27,10 +27,6 @@ from v8x.commands.cluster.compute_pool.delete import delete_compute_pool
 from v8x.commands.cluster.compute_pool.list import list_compute_pools
 from v8x.commands.cluster.inference_endpoint.create import create_inference
 from v8x.commands.cluster.inference_endpoint.list import list_inferences
-from v8x.commands.cluster.inference_preset.create import create_inference_preset
-from v8x.commands.cluster.inference_preset.delete import delete_inference_preset
-from v8x.commands.cluster.inference_preset.get import get_inference_preset
-from v8x.commands.cluster.inference_preset.list import list_inference_presets
 from v8x.commands.cluster.kubeflow.create import create_kubeflow
 from v8x.commands.cluster.kubeflow.delete import delete_kubeflow
 from v8x.commands.cluster.kubeflow.get import get_kubeflow
@@ -130,17 +126,15 @@ async def test_create_inference_delegates_to_sdk(monkeypatch: pytest.MonkeyPatch
         "model_id": "model-123",
         "storage_uri": None,
         "image": None,
-        "runtime": None,
+        "sizing_preset": None,
+        "configuration_preset": None,
         "compute_pool": None,
-        "cpu": "2",
-        "memory": "8Gi",
-        "gpu_count": 0,
-        "min_replicas": 1,
-        "max_replicas": 1,
-        "tensor_parallel": 1,
+        "cpu": None,
+        "memory": None,
+        "gpu_count": None,
         "framework": None,
-        "protocol_version": None,
         "credentials_secret": None,
+        "overrides": None,
     }
     ctx.obj.console.print.assert_any_call(
         "[green]✓[/green] Inference endpoint 'demo-endpoint' created"
@@ -1457,146 +1451,6 @@ async def test_test_secret_delegates_to_sdk_for_json_output(monkeypatch: pytest.
 
     sdk_test.assert_awaited_once_with(ctx, cluster_name="cluster-a", name="my-s3")
     assert json.loads(mock_print.call_args.args[0]) == {"ok": True, "bucket_count": 3}
-    ctx.obj.formatter.render_error.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_create_inference_preset_delegates_to_sdk(monkeypatch: pytest.MonkeyPatch):
-    ctx = _ctx()
-    sdk_create = AsyncMock(
-        return_value=ClusterServiceResponse(
-            status_code=201,
-            data={"name": "cpu-small"},
-            text="",
-        )
-    )
-    monkeypatch.setattr(
-        "v8x.commands.cluster.inference_preset.create.inference_preset_sdk.create",
-        sdk_create,
-    )
-
-    await _unwrap_command(create_inference_preset)(
-        ctx,
-        name="cpu-small",
-        cluster_name="cluster-a",
-        compute_pool="inference-cpu",
-        runtimes=["kserve-sklearn"],
-        cpu="4",
-        memory="16Gi",
-        gpu_count=1,
-        min_replicas=2,
-        max_replicas=4,
-        description="GPU preset",
-    )
-
-    sdk_create.assert_awaited_once_with(
-        ctx,
-        cluster_name="cluster-a",
-        name="cpu-small",
-        compute_pool="inference-cpu",
-        runtimes=["kserve-sklearn"],
-        cpu="4",
-        memory="16Gi",
-        gpu_count=1,
-        min_replicas=2,
-        max_replicas=4,
-        description="GPU preset",
-    )
-    ctx.obj.console.print.assert_any_call(
-        "[green]✓[/green] Inference preset [green]'cpu-small'[/green] created"
-    )
-    ctx.obj.formatter.render_error.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_get_inference_preset_delegates_to_sdk(monkeypatch: pytest.MonkeyPatch):
-    ctx = _ctx()
-    sdk_get = AsyncMock(
-        return_value=ClusterServiceResponse(
-            status_code=200,
-            data={
-                "name": "cpu-small",
-                "description": "CPU only",
-                "cpu": "2",
-                "memory": "8Gi",
-                "gpu_count": 0,
-                "compute_pool": "inference-cpu",
-                "min_replicas": 1,
-                "max_replicas": 1,
-                "runtimes": ["kserve-sklearn"],
-            },
-            text="",
-        )
-    )
-    monkeypatch.setattr(
-        "v8x.commands.cluster.inference_preset.get.inference_preset_sdk.get",
-        sdk_get,
-    )
-
-    await _unwrap_command(get_inference_preset)(ctx, name="cpu-small", cluster_name="cluster-a")
-
-    sdk_get.assert_awaited_once_with(ctx, cluster_name="cluster-a", name="cpu-small")
-    ctx.obj.console.print.assert_called_once()
-    ctx.obj.formatter.render_error.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_list_inference_presets_delegates_to_sdk(monkeypatch: pytest.MonkeyPatch):
-    ctx = _ctx()
-    sdk_list = AsyncMock(
-        return_value=ClusterServiceResponse(
-            status_code=200,
-            data={
-                "items": [
-                    {
-                        "name": "cpu-small",
-                        "cpu": "2",
-                        "memory": "8Gi",
-                        "gpu_count": 0,
-                        "compute_pool": "inference-cpu",
-                        "min_replicas": 1,
-                        "max_replicas": 1,
-                        "runtimes": ["kserve-sklearn"],
-                    }
-                ]
-            },
-            text="",
-        )
-    )
-    monkeypatch.setattr(
-        "v8x.commands.cluster.inference_preset.list.inference_preset_sdk.list",
-        sdk_list,
-    )
-
-    await _unwrap_command(list_inference_presets)(ctx, cluster_name="cluster-a")
-
-    sdk_list.assert_awaited_once_with(ctx, cluster_name="cluster-a")
-    ctx.obj.console.print.assert_called_once()
-    ctx.obj.formatter.render_error.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_delete_inference_preset_delegates_to_sdk_with_force(
-    monkeypatch: pytest.MonkeyPatch,
-):
-    ctx = _ctx()
-    sdk_delete = AsyncMock(
-        return_value=ClusterServiceResponse(status_code=204, data=None, text="")
-    )
-    monkeypatch.setattr(
-        "v8x.commands.cluster.inference_preset.delete.inference_preset_sdk.delete",
-        sdk_delete,
-    )
-
-    await _unwrap_command(delete_inference_preset)(
-        ctx,
-        name="cpu-small",
-        cluster_name="cluster-a",
-        force=True,
-    )
-
-    sdk_delete.assert_awaited_once_with(ctx, cluster_name="cluster-a", name="cpu-small")
-    ctx.obj.console.print.assert_any_call("[green]✓[/green] Inference preset 'cpu-small' deleted")
     ctx.obj.formatter.render_error.assert_not_called()
 
 
