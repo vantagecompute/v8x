@@ -17,6 +17,7 @@ from .create import create_configuration_preset
 from .delete import delete_configuration_preset
 from .get import get_configuration_preset
 from .list import list_configuration_presets
+from .resolve import resolve_configuration_preset
 
 # Create the configuration-preset command group
 configuration_preset_app = AsyncTyper(
@@ -30,3 +31,4 @@ configuration_preset_app.command("create")(create_configuration_preset)
 configuration_preset_app.command("delete")(delete_configuration_preset)
 configuration_preset_app.command("get")(get_configuration_preset)
 configuration_preset_app.command("list")(list_configuration_presets)
+configuration_preset_app.command("resolve")(resolve_configuration_preset)

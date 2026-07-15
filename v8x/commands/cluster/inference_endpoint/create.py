@@ -15,6 +15,39 @@ from v8x.exceptions import handle_abort
 from v8x.vantage_rest_api_client import attach_vantage_rest_client
 
 
+def _build_overrides(override: list[str] | None, overrides_json: str | None) -> dict | None:
+    """Assemble the request 'overrides' object from --overrides-json + -o KEY=VALUE.
+
+    JSON supplies the base (for nested options like parallelism/env); repeated
+    -o entries layer simple top-level keys on top. Values are passed as
+    strings — the server coerces typed fields.
+    """
+    out: dict = {}
+    if overrides_json:
+        try:
+            parsed = json.loads(overrides_json)
+        except json.JSONDecodeError as exc:
+            raise Abort(
+                f"--overrides-json is not valid JSON: {exc}",
+                subject="Invalid Overrides",
+            ) from exc
+        if not isinstance(parsed, dict):
+            raise Abort(
+                "--overrides-json must be a JSON object (e.g. {...}).",
+                subject="Invalid Overrides",
+            )
+        out.update(parsed)
+    for entry in override or []:
+        key, sep, value = entry.partition("=")
+        if not sep or not key:
+            raise Abort(
+                f"--override entries must be KEY=VALUE (got '{entry}').",
+                subject="Invalid Overrides",
+            )
+        out[key] = value
+    return out or None
+
+
 @handle_abort
 @attach_settings
 @attach_persona
@@ -44,26 +77,38 @@ async def create_inference(  # noqa: C901
     image: Annotated[
         str | None, typer.Option("--image", help="Container image (for custom source)")
     ] = None,
-    runtime: Annotated[
-        str | None, typer.Option("--runtime", "-r", help="ClusterServingRuntime name")
+    sizing_preset: Annotated[
+        str | None,
+        typer.Option(
+            "--sizing-preset",
+            "-P",
+            help="Inference sizing preset supplying cpu/memory/gpu + compute pool",
+        ),
+    ] = None,
+    configuration_preset: Annotated[
+        str | None,
+        typer.Option(
+            "--configuration-preset",
+            "-C",
+            help="Inference configuration preset supplying runtime/protocol/"
+            "scaling/args/env; omit to use the cluster's default preset",
+        ),
     ] = None,
     compute_pool: Annotated[
         str | None, typer.Option("--compute-pool", "-p", help="Compute pool name")
     ] = None,
-    cpu: Annotated[str, typer.Option("--cpu", help="CPU request")] = "2",
-    memory: Annotated[str, typer.Option("--memory", help="Memory request")] = "8Gi",
-    gpu_count: Annotated[int, typer.Option("--gpu-count", help="GPU count")] = 0,
-    min_replicas: Annotated[int, typer.Option("--min-replicas", help="Min replicas")] = 1,
-    max_replicas: Annotated[int, typer.Option("--max-replicas", help="Max replicas")] = 1,
-    tensor_parallel: Annotated[
-        int, typer.Option("--tensor-parallel", help="Tensor parallelism (LLM only)")
-    ] = 1,
+    cpu: Annotated[
+        str | None, typer.Option("--cpu", help="CPU override (unset: sizing preset)")
+    ] = None,
+    memory: Annotated[
+        str | None, typer.Option("--memory", help="Memory override (unset: sizing preset)")
+    ] = None,
+    gpu_count: Annotated[
+        int | None, typer.Option("--gpu-count", help="GPU count override (unset: sizing preset)")
+    ] = None,
     framework: Annotated[
         str | None,
         typer.Option("--framework", help="Model framework (sklearn, pytorch, huggingface, etc.)"),
-    ] = None,
-    protocol_version: Annotated[
-        str | None, typer.Option("--protocol-version", help="KServe protocol: v1, v2, or openai")
     ] = None,
     credentials_secret: Annotated[
         str | None,
@@ -72,18 +117,46 @@ async def create_inference(  # noqa: C901
             help="Secret name for model access (e.g. hf-token for gated HF models)",
         ),
     ] = None,
+    override: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--override",
+            "-o",
+            help="Configuration override KEY=VALUE (repeatable; top-level option "
+            "keys, e.g. -o runtime=kserve-vllm -o max_replicas=3). Scalars "
+            "replace the preset value; use --overrides-json for nested options",
+        ),
+    ] = None,
+    overrides_json: Annotated[
+        str | None,
+        typer.Option(
+            "--overrides-json",
+            help='Raw JSON configuration overrides (same shape as the preset\'s '
+            'options, e.g. \'{"parallelism": {"tensor": 2}, "env": {"K": "V"}}\'); '
+            "env merges by name, args append, scalars replace",
+        ),
+    ] = None,
 ):
     r"""Create an inference endpoint (predictive or LLM).
 
+    Non-sizing configuration (runtime, protocol, scaling knobs, args/env)
+    comes from the configuration preset — or the cluster's default preset
+    when none is named. Per-create deltas go through -o/--overrides-json.
+    Preview the effective configuration with
+    'v8x cluster configuration-preset resolve'.
+
     Examples:
         v8x cluster inference-endpoint create my-sklearn -c my-cluster \\
-            --source-type model_registry --model-id my-model --runtime kserve-sklearnserver
+            --source-type model_registry --model-id my-model \\
+            --configuration-preset cpu-medium
 
         v8x cluster inference-endpoint create my-llm -c my-cluster --kind llm \\
-            --source-type huggingface --model-id google/gemma-4b-it --runtime kserve-vllm \\
-            --gpu-count 1 --tensor-parallel 1
+            --source-type huggingface --model-id google/gemma-4b-it \\
+            --configuration-preset gpu-medium -o runtime=kserve-vllm \\
+            --overrides-json '{"parallelism": {"tensor": 1}}'
     """
     console = ctx.obj.console
+    overrides = _build_overrides(override, overrides_json)
 
     try:
         console.print(f"[dim]Creating {kind} inference '{name}'...[/dim]")
@@ -96,17 +169,15 @@ async def create_inference(  # noqa: C901
             model_id=model_id,
             storage_uri=storage_uri,
             image=image,
-            runtime=runtime,
+            sizing_preset=sizing_preset,
+            configuration_preset=configuration_preset,
             compute_pool=compute_pool,
             cpu=cpu,
             memory=memory,
             gpu_count=gpu_count,
-            min_replicas=min_replicas,
-            max_replicas=max_replicas,
-            tensor_parallel=tensor_parallel,
             framework=framework,
-            protocol_version=protocol_version,
             credentials_secret=credentials_secret,
+            overrides=overrides,
         )
 
         if response.status_code in (200, 201):

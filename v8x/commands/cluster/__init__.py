@@ -21,7 +21,6 @@ from .extend import extend_cluster
 from .federation import federation_app
 from .get import get_cluster
 from .inference_endpoint import inference_endpoint_app
-from .inference_preset import inference_preset_app
 from .kubeflow import kubeflow_app
 from .list import list_clusters
 from .model_registry import model_registry_app
@@ -54,7 +53,6 @@ cluster_app.command("update")(update_cluster)
 cluster_app.add_typer(compute_pool_app, name="compute-pool")
 cluster_app.add_typer(configuration_preset_app, name="configuration-preset")
 cluster_app.add_typer(federation_app, name="federation")
-cluster_app.add_typer(inference_preset_app, name="preset")
 cluster_app.add_typer(inference_endpoint_app, name="inference-endpoint")
 cluster_app.add_typer(model_registry_app, name="model-registry")
 cluster_app.add_typer(namespace_app, name="namespace")
