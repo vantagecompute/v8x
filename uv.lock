@@ -1645,7 +1645,7 @@ requires-dist = [
     { name = "snick", specifier = ">=3.0.0" },
     { name = "textual", specifier = ">=7.5.0" },
     { name = "typer", specifier = ">=0.21.1" },
-    { name = "vantage-sdkpy", specifier = ">=0.1.15" },
+    { name = "vantage-sdkpy", specifier = ">=0.1.16" },
     { name = "websockets", specifier = ">=16.0" },
 ]
 provides-extras = ["dev"]
@@ -1658,7 +1658,7 @@ dev = [
 
 [[package]]
 name = "vantage-sdkpy"
-version = "0.1.15"
+version = "0.1.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1677,9 +1677,9 @@ dependencies = [
     { name = "snick" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/73/13/91a379edc43815d2772003044df98aeb8c1ef9dd3d297517988d0f907966/vantage_sdkpy-0.1.15.tar.gz", hash = "sha256:7f84704e4552f804cbf6ad5177a030c903226ac840f97b61f85fddd600990562", size = 60401, upload-time = "2026-07-15T02:45:23.707Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/f1/8fdc0f935230dd5f1e7987ee80a91cfdd06aa9a146bb3f722de6002db005/vantage_sdkpy-0.1.16.tar.gz", hash = "sha256:071440c4a2a2bc00487ed6755aa515505520f00dcf0a78825bc1ad523a2f72df", size = 60852, upload-time = "2026-07-15T19:35:26.18Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/ad/592b1f9b2bd943674a7c6225e016ee4e14ae46691885e468488545469b37/vantage_sdkpy-0.1.15-py3-none-any.whl", hash = "sha256:d72479f30f4a21087eb9e37ac1b0781d6c833d4f94790d42c1ab672270fa9c3c", size = 98162, upload-time = "2026-07-15T02:45:22.382Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/87/b0d0b65e79d5d3083d7b10238b93b36e1f603e15432efa210796a844bcf5/vantage_sdkpy-0.1.16-py3-none-any.whl", hash = "sha256:6f8428372e44cfd420776ee2e792154e62155b039479fda9016ada8e15e72905", size = 98115, upload-time = "2026-07-15T19:35:24.709Z" },
 ]
 
 [[package]]
