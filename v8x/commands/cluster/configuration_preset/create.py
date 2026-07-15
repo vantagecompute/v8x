@@ -156,6 +156,17 @@ async def create_configuration_preset(
             help=f"Preset kind: {', '.join(sorted(CONFIGURATION_PRESET_KINDS - {'session'}))}",
         ),
     ] = "cloud-shell",
+    sizing_preset: Annotated[
+        Optional[str],
+        typer.Option(
+            "--sizing-preset",
+            "-p",
+            help="Bundled sizing preset name (from the kind's sizing catalog; "
+            "user-service kinds reference the shared 'user-service' catalog). "
+            "Workload creates then only need the configuration preset. Not "
+            "valid for kind=dynamo/session.",
+        ),
+    ] = None,
     image: Annotated[
         Optional[str],
         typer.Option(
@@ -267,6 +278,14 @@ async def create_configuration_preset(
             max_parallelism=max_parallelism,
         )
         preset = {"kind": kind, "name": name, "options": options}
+        if sizing_preset:
+            if kind in ("dynamo", "session"):
+                raise Abort(
+                    f"--sizing-preset is not valid for kind={kind} — dynamo has no "
+                    "sizing presets and session references sizing via pod_sizes.",
+                    subject="Invalid Option",
+                )
+            preset["sizing_preset"] = sizing_preset
         if description:
             preset["description"] = description
 
