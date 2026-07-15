@@ -90,6 +90,7 @@ async def list_configuration_presets(
             table = Table(title=f"Configuration Presets ({len(items)} total)")
             table.add_column("Kind", style="cyan")
             table.add_column("Name", style="green")
+            table.add_column("Sizing Preset", style="magenta")
             table.add_column("Options", style="dim")
             table.add_column("Description", style="dim")
 
@@ -97,6 +98,7 @@ async def list_configuration_presets(
                 table.add_row(
                     p.get("kind", "?"),
                     p.get("name", "?"),
+                    p.get("sizing_preset") or "",
                     _summarize_options(p.get("options") or {}),
                     (p.get("description") or "")[:48],
                 )
