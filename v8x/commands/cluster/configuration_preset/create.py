@@ -46,21 +46,30 @@ def _parse_body_json(body_json: str, name: str) -> dict:
     return preset
 
 
+_USER_SERVICE_KINDS = {"cloud-shell", "remote-desktop", "pvc-viewer"}
+
+
 def _build_user_service_options(
     *,
-    workloads: Optional[list[str]],
-    image_version: Optional[str],
+    kind: str,
+    image: Optional[str],
     resolution: Optional[str],
     slurm_cluster: Optional[str],
 ) -> dict:
-    if not workloads:
+    """Options for the per-workload user-service kinds (kind == workload)."""
+    if resolution and kind != "remote-desktop":
         raise Abort(
-            "Provide at least one --workload (or a raw --body payload).",
-            subject="Missing Workload",
+            "--resolution only applies to kind=remote-desktop.",
+            subject="Invalid Option",
         )
-    options: dict = {"service_types": [w.lower() for w in workloads]}
-    if image_version:
-        options["image_version"] = image_version
+    if slurm_cluster and kind == "pvc-viewer":
+        raise Abort(
+            "--slurm-cluster only applies to cloud-shell / remote-desktop.",
+            subject="Invalid Option",
+        )
+    options: dict = {}
+    if image:
+        options["image"] = image
     if resolution:
         options["resolution"] = resolution
     if slurm_cluster:
@@ -71,8 +80,7 @@ def _build_user_service_options(
 def _build_options(
     *,
     kind: str,
-    workloads: Optional[list[str]],
-    image_version: Optional[str],
+    image: Optional[str],
     resolution: Optional[str],
     slurm_cluster: Optional[str],
     runtime: Optional[str],
@@ -82,17 +90,17 @@ def _build_options(
     max_parallelism: Optional[int],
 ) -> dict:
     """Assemble kind-specific configuration options from the CLI flags."""
-    if kind == "user-service":
+    if kind in _USER_SERVICE_KINDS:
         return _build_user_service_options(
-            workloads=workloads,
-            image_version=image_version,
+            kind=kind,
+            image=image,
             resolution=resolution,
             slurm_cluster=slurm_cluster,
         )
     if kind == "trainjob":
         if not runtime:
             raise Abort(
-                "kind=trainjob requires --runtime (ClusterTrainingRuntime name).",
+                "kind=trainjob requires --runtime (namespaced TrainingRuntime name).",
                 subject="Missing Runtime",
             )
         options: dict = {"runtime_ref": {"name": runtime}, "nodes": nodes}
@@ -106,12 +114,15 @@ def _build_options(
         if proc_per_node:
             options["proc_per_node"] = proc_per_node
         return options
+    if kind == "inference":
+        # Scale/flavor knobs need --body; --runtime references a namespaced
+        # ServingRuntime (POST /inferences/runtimes).
+        return {"runtime": runtime} if runtime else {}
     if kind == "model":
         return {"scratch_size": scratch_size} if scratch_size else {}
     if kind == "pipeline":
         return {"max_parallelism": max_parallelism} if max_parallelism else {}
-    if kind in ("tensorboard", "inference"):
-        # tensorboard has no options; inference scale/flavor knobs need --body.
+    if kind == "tensorboard":
         return {}
     raise Abort(
         f"kind '{kind}' cannot be built from flags — pass a raw --body payload.",
@@ -144,26 +155,20 @@ async def create_configuration_preset(
             "-k",
             help=f"Preset kind: {', '.join(sorted(CONFIGURATION_PRESET_KINDS - {'session'}))}",
         ),
-    ] = "user-service",
-    workloads: Annotated[
-        Optional[list[str]],
-        typer.Option(
-            "--workload",
-            "-w",
-            help="Workload(s) a user-service preset applies to "
-            "(cloud-shell, remote-desktop, pvc-viewer; repeatable)",
-        ),
-    ] = None,
-    image_version: Annotated[
+    ] = "cloud-shell",
+    image: Annotated[
         Optional[str],
         typer.Option(
-            "--image-version", help="Default image tag for services created from this preset"
+            "--image",
+            help="Image used in place of the workload default (user-service kinds): "
+            "a value with '/' or ':' is a full reference; a bare value replaces "
+            "the version tag on the default registry image",
         ),
     ] = None,
     resolution: Annotated[
         Optional[str],
         typer.Option(
-            "--resolution", "-r", help="Default desktop resolution (remote-desktop only)"
+            "--resolution", "-r", help="Default desktop resolution (kind=remote-desktop only)"
         ),
     ] = None,
     slurm_cluster: Annotated[
@@ -176,8 +181,9 @@ async def create_configuration_preset(
         Optional[str],
         typer.Option(
             "--runtime",
-            help="ClusterTrainingRuntime name (required for kind=trainjob; "
-            "optional default for kind=sweep)",
+            help="Namespaced runtime reference: TrainingRuntime name (required for "
+            "kind=trainjob; optional default for kind=sweep) or ServingRuntime "
+            "name (kind=inference)",
         ),
     ] = None,
     nodes: Annotated[
@@ -219,25 +225,29 @@ async def create_configuration_preset(
     Configuration presets carry everything that is NOT sizing needed for
     vdeployer to assemble each kind's CRs — a flat envelope (name,
     description, kind) plus a kind-specific 'options' object. Pod shapes
-    live in sizing presets ('v8x cluster sizing-preset'). Use --body for
-    full control over any kind (session pod-size references, dynamo SLA,
-    inference scale knobs, sweep budgets, …).
+    live in sizing presets ('v8x cluster sizing-preset'). User services
+    have one configuration kind per workload (cloud-shell, remote-desktop,
+    pvc-viewer) — the kind IS the workload. Runtime references are
+    NAMESPACED (TrainingRuntime / ServingRuntime) — create them first via
+    the trainjobs/inferences runtime APIs. Use --body for full control
+    over any kind (session pod-size references, dynamo SLA, inference
+    scale knobs, sweep budgets, …).
 
     Examples:
         v8x cluster configuration-preset create shell-sm -c my-cluster \
-            --workload cloud-shell --slurm-cluster slurm1
+            --kind cloud-shell --slurm-cluster slurm1
 
         v8x cluster configuration-preset create desktop-lg -c my-cluster \
-            -w remote-desktop -r 1920x1080 --image-version noble-3.3-0.2
+            --kind remote-desktop -r 1920x1080 --image noble-3.3-0.2
 
         v8x cluster configuration-preset create train-torch -c my-cluster \
             --kind trainjob --runtime torch-distributed --nodes 2
 
+        v8x cluster configuration-preset create gpu-llm -c my-cluster \
+            --kind inference --runtime kserve-huggingfaceserver
+
         v8x cluster configuration-preset create model-lg -c my-cluster \
             --kind model --scratch-size 100Gi
-
-        v8x cluster configuration-preset create vllm-7b -c my-cluster \
-            --body '{"kind": "inference", "name": "vllm-7b", "options": {"flavor": "llm"}}'
     """
     console = ctx.obj.console
 
@@ -247,8 +257,7 @@ async def create_configuration_preset(
         kind = kind.lower()
         options = _build_options(
             kind=kind,
-            workloads=workloads,
-            image_version=image_version,
+            image=image,
             resolution=resolution,
             slurm_cluster=slurm_cluster,
             runtime=runtime,
