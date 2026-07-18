@@ -150,7 +150,9 @@ async def create_nim(
         else:
             data = response.json() or {}
             detail = data.get("detail", response.text) if isinstance(data, dict) else response.text
-            console.print(f"[red]Error:[/red] {response.status_code}: {detail}")
+            # Raise instead of printing: exit code must be non-zero and
+            # stdout must stay pure JSON under --json (scripts pipe to jq).
+            raise Abort(f"Failed: {response.status_code}: {detail}", subject="API Error")
 
     except Abort:
         raise
