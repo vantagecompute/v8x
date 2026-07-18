@@ -71,6 +71,12 @@ async def list_compute_pools(
         data = response.json() or []
         groups = data if isinstance(data, list) else data.get("node_groups", [])
 
+        if ctx.obj.json_output:
+            import json
+
+            print(json.dumps(groups, default=str))
+            return
+
         if not groups:
             console.print(f"No compute pools found on '{cluster_name}'")
             return
