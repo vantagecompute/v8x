@@ -161,10 +161,10 @@ async def create_configuration_preset(
         typer.Option(
             "--sizing-preset",
             "-p",
-            help="Bundled sizing preset name (from the kind's sizing catalog; "
-            "user-service kinds reference the shared 'user-service' catalog). "
-            "Workload creates then only need the configuration preset. Not "
-            "valid for kind=dynamo/session.",
+            help="Bundled sizing preset name, stored as options.sizing_preset "
+            "(from the kind's sizing catalog; user-service kinds reference the "
+            "shared 'user-service' catalog). Workload creates then only need "
+            "the configuration preset. Not valid for kind=dynamo/session.",
         ),
     ] = None,
     image: Annotated[
@@ -293,7 +293,7 @@ async def create_configuration_preset(
                     "sizing presets and session references sizing via pod_sizes.",
                     subject="Invalid Option",
                 )
-            preset["sizing_preset"] = sizing_preset
+            options["sizing_preset"] = sizing_preset
         if description:
             preset["description"] = description
         if default:

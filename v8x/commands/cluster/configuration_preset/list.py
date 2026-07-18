@@ -34,6 +34,8 @@ def _summarize_options(options: dict) -> str:
     for key, value in options.items():
         if value in (None, [], {}, ""):
             continue
+        if key == "sizing_preset":
+            continue  # rendered in its own column
         if key == "runtime_ref" and isinstance(value, dict):
             parts.append(f"runtime={value.get('name')}")
         elif key == "service_types" and isinstance(value, list):
@@ -98,7 +100,7 @@ async def list_configuration_presets(
                 table.add_row(
                     p.get("kind", "?"),
                     p.get("name", "?"),
-                    p.get("sizing_preset") or "",
+                    (p.get("options") or {}).get("sizing_preset") or "",
                     _summarize_options(p.get("options") or {}),
                     (p.get("description") or "")[:48],
                 )
