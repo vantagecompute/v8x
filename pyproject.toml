@@ -91,6 +91,7 @@ source = ["v8x"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
+pythonpath = ["."]
 log_cli_level = "INFO"
 filterwarnings = [
     "ignore::DeprecationWarning:juju.client.connection",

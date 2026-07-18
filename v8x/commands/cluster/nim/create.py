@@ -109,7 +109,8 @@ async def create_nim(
     env_dict = _parse_env(env)
 
     try:
-        console.print(f"[dim]Creating NIM deployment '{name}'...[/dim]")
+        if not ctx.obj.json_output:
+            console.print(f"[dim]Creating NIM deployment '{name}'...[/dim]")
         response = await nim_deployment_sdk.create(
             ctx,
             cluster_name=cluster_name,
