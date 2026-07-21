@@ -77,12 +77,12 @@ async def create_inference(  # noqa: C901
     image: Annotated[
         str | None, typer.Option("--image", help="Container image (for custom source)")
     ] = None,
-    sizing_preset: Annotated[
+    size_preset: Annotated[
         str | None,
         typer.Option(
-            "--sizing-preset",
+            "--size-preset",
             "-P",
-            help="Inference sizing preset supplying cpu/memory/gpu + compute pool",
+            help="Inference size preset supplying cpu/memory/gpu + compute pool",
         ),
     ] = None,
     configuration_preset: Annotated[
@@ -98,13 +98,13 @@ async def create_inference(  # noqa: C901
         str | None, typer.Option("--compute-pool", "-p", help="Compute pool name")
     ] = None,
     cpu: Annotated[
-        str | None, typer.Option("--cpu", help="CPU override (unset: sizing preset)")
+        str | None, typer.Option("--cpu", help="CPU override (unset: size preset)")
     ] = None,
     memory: Annotated[
-        str | None, typer.Option("--memory", help="Memory override (unset: sizing preset)")
+        str | None, typer.Option("--memory", help="Memory override (unset: size preset)")
     ] = None,
     gpu_count: Annotated[
-        int | None, typer.Option("--gpu-count", help="GPU count override (unset: sizing preset)")
+        int | None, typer.Option("--gpu-count", help="GPU count override (unset: size preset)")
     ] = None,
     framework: Annotated[
         str | None,
@@ -169,7 +169,7 @@ async def create_inference(  # noqa: C901
             model_id=model_id,
             storage_uri=storage_uri,
             image=image,
-            sizing_preset=sizing_preset,
+            size_preset=size_preset,
             configuration_preset=configuration_preset,
             compute_pool=compute_pool,
             cpu=cpu,

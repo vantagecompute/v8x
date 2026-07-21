@@ -9,7 +9,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
-"""List sizing presets command."""
+"""List size presets command."""
 
 from typing import Optional
 
@@ -17,7 +17,7 @@ import typer
 from rich.table import Table
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
-from vantage_sdk.workbench.sizing_preset import SIZING_WORKLOADS, sizing_preset_sdk
+from vantage_sdk.workbench.size_preset import SIZING_WORKLOADS, size_preset_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
@@ -29,7 +29,7 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 @attach_settings
 @attach_persona
 @attach_vantage_rest_client
-async def list_sizing_presets(
+async def list_size_presets(
     ctx: typer.Context,
     cluster_name: Annotated[
         str,
@@ -48,26 +48,26 @@ async def list_sizing_presets(
         ),
     ] = None,
 ):
-    """List sizing presets on a Vantage cluster.
+    """List size presets on a Vantage cluster.
 
     Examples:
-        v8x cluster sizing-preset list -c my-cluster
-        v8x cluster sizing-preset list -c my-cluster --workload kubeflow-inference
+        v8x cluster size-preset list -c my-cluster
+        v8x cluster size-preset list -c my-cluster --workload kubeflow-inference
     """
     console = ctx.obj.console
 
     try:
-        console.print("[dim]Fetching sizing presets...[/dim]")
+        console.print("[dim]Fetching size presets...[/dim]")
 
-        response = await sizing_preset_sdk.list(ctx, cluster_name=cluster_name, workload=workload)
+        response = await size_preset_sdk.list(ctx, cluster_name=cluster_name, workload=workload)
 
         if response.status_code == 200:
             items = response.json().get("items", [])
             if not items:
-                console.print("[yellow]No sizing presets found[/yellow]")
+                console.print("[yellow]No size presets found[/yellow]")
                 return
 
-            table = Table(title=f"Sizing Presets ({len(items)} total)")
+            table = Table(title=f"Size Presets ({len(items)} total)")
             table.add_column("Workload", style="cyan")
             table.add_column("Name", style="green")
             table.add_column("CPU")
@@ -96,15 +96,15 @@ async def list_sizing_presets(
             except Exception:
                 error_detail = response.text or f"HTTP {response.status_code}"
             raise Abort(
-                f"Failed to list sizing presets: {error_detail}",
+                f"Failed to list size presets: {error_detail}",
                 subject="Preset List Failed",
-                log_message=f"Sizing preset list failed: {error_detail}",
+                log_message=f"Size preset list failed: {error_detail}",
             )
 
     except Abort:
         raise
     except Exception as e:
         ctx.obj.formatter.render_error(
-            error_message="Failed to list sizing presets.",
+            error_message="Failed to list size presets.",
             details={"error": str(e)},
         )

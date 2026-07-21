@@ -156,12 +156,12 @@ async def create_configuration_preset(
             help=f"Preset kind: {', '.join(sorted(CONFIGURATION_PRESET_KINDS - {'session'}))}",
         ),
     ] = "cloud-shell",
-    sizing_preset: Annotated[
+    size_preset: Annotated[
         Optional[str],
         typer.Option(
-            "--sizing-preset",
+            "--size-preset",
             "-p",
-            help="Bundled sizing preset name, stored as options.sizing_preset "
+            help="Bundled size preset name, stored as options.size_preset "
             "(from the kind's mapped workload catalog; user-service kinds "
             "reference their own workload catalog). Workload creates then only "
             "need the configuration preset. Not valid for "
@@ -245,7 +245,7 @@ async def create_configuration_preset(
     Configuration presets carry everything that is NOT sizing needed for
     vdeployer to assemble each kind's CRs — a flat envelope (name,
     description, kind) plus a kind-specific 'options' object. Pod shapes
-    live in sizing presets ('v8x cluster sizing-preset'). User services
+    live in size presets ('v8x cluster size-preset'). User services
     have one configuration kind per workload (cloud-shell, remote-desktop,
     pvc-viewer) — the kind IS the workload. Runtime references are
     NAMESPACED (TrainingRuntime / ServingRuntime) — create them first via
@@ -287,15 +287,15 @@ async def create_configuration_preset(
             max_parallelism=max_parallelism,
         )
         preset = {"kind": kind, "name": name, "options": options}
-        if sizing_preset:
+        if size_preset:
             if kind in ("nim", "nim-kserve", "dynamo", "session"):
                 raise Abort(
-                    f"--sizing-preset is not valid for kind={kind} — these kinds "
-                    "do not take a sizing preset (dynamo derives pod shapes from "
+                    f"--size-preset is not valid for kind={kind} — these kinds "
+                    "do not take a size preset (dynamo derives pod shapes from "
                     "its profiler; session references sizing via pod_sizes).",
                     subject="Invalid Option",
                 )
-            options["sizing_preset"] = sizing_preset
+            options["size_preset"] = size_preset
         if description:
             preset["description"] = description
         if default:
