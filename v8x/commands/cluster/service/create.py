@@ -52,10 +52,10 @@ async def create_user_service(
     preset: Annotated[
         str | None,
         typer.Option(
-            "--sizing-preset",
+            "--size-preset",
             "-p",
-            help="Sizing preset name supplying cpu/memory and the compute pool "
-            "(see 'v8x cluster sizing-preset list --kind user-service').",
+            help="Size preset name supplying cpu/memory and the compute pool "
+            "(see 'v8x cluster size-preset list --kind user-service').",
         ),
     ] = None,
     configuration_preset: Annotated[
@@ -96,7 +96,7 @@ async def create_user_service(
 
         # Create a cloud shell from the split presets
         v8x cluster service create cloud-shell -c my-cluster \\
-            --sizing-preset shell-sm --configuration-preset shell-sm
+            --size-preset shell-sm --configuration-preset shell-sm
 
         # Create a remote desktop with a resolution override
         v8x cluster service create remote-desktop -c my-cluster \\
@@ -128,7 +128,7 @@ async def create_user_service(
             cluster_name=cluster_name,
             workload=workload_lower,
             name=name,
-            sizing_preset=preset,
+            size_preset=preset,
             configuration_preset=configuration_preset,
             image=image,
             resolution=resolution,
@@ -140,8 +140,8 @@ async def create_user_service(
             console.print(f"  Service ID: {result.get('id', 'N/A')}")
             console.print(f"  URL: {result.get('url', 'N/A')}")
             console.print(f"  Status: {result.get('status', 'N/A')}")
-            if result.get("sizing_preset"):
-                console.print(f"  Sizing Preset: {result.get('sizing_preset')}")
+            if result.get("size_preset"):
+                console.print(f"  Size Preset: {result.get('size_preset')}")
             if result.get("configuration_preset"):
                 console.print(f"  Configuration Preset: {result.get('configuration_preset')}")
             options = result.get("options") or {}
