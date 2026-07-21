@@ -223,14 +223,6 @@ async def create_configuration_preset(
         Optional[str],
         typer.Option("--description", "-d", help="Preset description"),
     ] = None,
-    default: Annotated[
-        bool,
-        typer.Option(
-            "--default",
-            help="Mark this preset as the kind's default (at most one per kind; "
-            "workload creates apply it when no configuration preset is named)",
-        ),
-    ] = False,
     body_json: Annotated[
         Optional[str],
         typer.Option(
@@ -298,13 +290,6 @@ async def create_configuration_preset(
             options["size_preset"] = size_preset
         if description:
             preset["description"] = description
-        if default:
-            if kind == "session":
-                raise Abort(
-                    "--default is not valid for kind=session.",
-                    subject="Invalid Option",
-                )
-            preset["default"] = True
 
     try:
         console.print(

@@ -33,7 +33,7 @@ async def resolve_configuration_preset(
     ctx: typer.Context,
     name: Annotated[
         str,
-        typer.Argument(help="Preset name, or '@default' for the kind's default preset"),
+        typer.Argument(help="Preset name"),
     ],
     cluster_name: Annotated[
         str,
@@ -69,7 +69,7 @@ async def resolve_configuration_preset(
     Examples:
         v8x cluster configuration-preset resolve gpu-medium -c my-cluster -k kserve
 
-        v8x cluster configuration-preset resolve @default -c my-cluster -k kserve \\
+        v8x cluster configuration-preset resolve gpu-medium -c my-cluster -k kserve \\
             --overrides-json '{"env": {"LOG_LEVEL": "debug"}}'
     """
     console = ctx.obj.console
