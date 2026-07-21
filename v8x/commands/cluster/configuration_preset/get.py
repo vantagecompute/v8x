@@ -53,7 +53,7 @@ async def get_configuration_preset(
     """Get a single configuration preset by kind and name.
 
     Examples:
-        v8x cluster configuration-preset get user-service shell-sm -c my-cluster
+        v8x cluster configuration-preset get cloud-shell shell-sm -c my-cluster
         v8x cluster configuration-preset get dynamo prod-sla -c my-cluster
     """
     console = ctx.obj.console

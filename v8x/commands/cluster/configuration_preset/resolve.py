@@ -41,8 +41,8 @@ async def resolve_configuration_preset(
     ],
     kind: Annotated[
         str,
-        typer.Option("--kind", "-k", help="Configuration preset kind (e.g. inference, trainjob)"),
-    ] = "inference",
+        typer.Option("--kind", "-k", help="Configuration preset kind (e.g. kserve, trainjob)"),
+    ] = "kserve",
     sizing_preset: Annotated[
         Optional[str],
         typer.Option(
@@ -67,9 +67,9 @@ async def resolve_configuration_preset(
     workload create endpoint performs.
 
     Examples:
-        v8x cluster configuration-preset resolve gpu-medium -c my-cluster -k inference
+        v8x cluster configuration-preset resolve gpu-medium -c my-cluster -k kserve
 
-        v8x cluster configuration-preset resolve @default -c my-cluster -k inference \\
+        v8x cluster configuration-preset resolve @default -c my-cluster -k kserve \\
             --overrides-json '{"env": {"LOG_LEVEL": "debug"}}'
     """
     console = ctx.obj.console

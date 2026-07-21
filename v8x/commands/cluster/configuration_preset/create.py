@@ -114,7 +114,7 @@ def _build_options(
         if proc_per_node:
             options["proc_per_node"] = proc_per_node
         return options
-    if kind == "inference":
+    if kind == "kserve":
         # Scale/flavor knobs need --body; --runtime references a namespaced
         # ServingRuntime (POST /inferences/runtimes).
         return {"runtime": runtime} if runtime else {}
@@ -162,9 +162,10 @@ async def create_configuration_preset(
             "--sizing-preset",
             "-p",
             help="Bundled sizing preset name, stored as options.sizing_preset "
-            "(from the kind's sizing catalog; user-service kinds reference the "
-            "shared 'user-service' catalog). Workload creates then only need "
-            "the configuration preset. Not valid for kind=dynamo/session.",
+            "(from the kind's mapped workload catalog; user-service kinds "
+            "reference their own workload catalog). Workload creates then only "
+            "need the configuration preset. Not valid for "
+            "kind=nim/nim-kserve/dynamo/session.",
         ),
     ] = None,
     image: Annotated[
@@ -194,7 +195,7 @@ async def create_configuration_preset(
             "--runtime",
             help="Namespaced runtime reference: TrainingRuntime name (required for "
             "kind=trainjob; optional default for kind=sweep) or ServingRuntime "
-            "name (kind=inference)",
+            "name (kind=kserve)",
         ),
     ] = None,
     nodes: Annotated[
@@ -249,8 +250,8 @@ async def create_configuration_preset(
     pvc-viewer) — the kind IS the workload. Runtime references are
     NAMESPACED (TrainingRuntime / ServingRuntime) — create them first via
     the trainjobs/inferences runtime APIs. Use --body for full control
-    over any kind (session pod-size references, dynamo SLA, inference
-    scale knobs, sweep budgets, …).
+    over any kind (session pod-size references, dynamo SLA, NIM options,
+    kserve scale knobs, sweep budgets, …).
 
     Examples:
         v8x cluster configuration-preset create shell-sm -c my-cluster \
@@ -263,7 +264,7 @@ async def create_configuration_preset(
             --kind trainjob --runtime torch-distributed --nodes 2
 
         v8x cluster configuration-preset create gpu-llm -c my-cluster \
-            --kind inference --runtime kserve-huggingfaceserver
+            --kind kserve --runtime kserve-huggingfaceserver
 
         v8x cluster configuration-preset create model-lg -c my-cluster \
             --kind model --scratch-size 100Gi
@@ -287,10 +288,11 @@ async def create_configuration_preset(
         )
         preset = {"kind": kind, "name": name, "options": options}
         if sizing_preset:
-            if kind in ("dynamo", "session"):
+            if kind in ("nim", "nim-kserve", "dynamo", "session"):
                 raise Abort(
-                    f"--sizing-preset is not valid for kind={kind} — dynamo has no "
-                    "sizing presets and session references sizing via pod_sizes.",
+                    f"--sizing-preset is not valid for kind={kind} — these kinds "
+                    "do not take a sizing preset (dynamo derives pod shapes from "
+                    "its profiler; session references sizing via pod_sizes).",
                     subject="Invalid Option",
                 )
             options["sizing_preset"] = sizing_preset

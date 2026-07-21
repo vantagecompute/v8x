@@ -9,7 +9,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
-"""Sizing preset commands (vdeployer-web /sizing-presets)."""
+"""Sizing preset commands (vdeployer-web /size-preset)."""
 
 from v8x import AsyncTyper
 
@@ -21,7 +21,7 @@ from .list import list_sizing_presets
 # Create the sizing-preset command group
 sizing_preset_app = AsyncTyper(
     name="sizing-preset",
-    help="Manage sizing presets (pod shapes: cpu/memory/gpu/compute pool) per workload kind.",
+    help="Manage sizing presets (pod shapes: cpu/memory/gpu/compute pool) per workload catalog.",
     invoke_without_command=True,
     no_args_is_help=True,
 )

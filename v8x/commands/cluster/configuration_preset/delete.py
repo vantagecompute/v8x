@@ -59,7 +59,7 @@ async def delete_configuration_preset(
     """Delete a configuration preset (idempotent server-side).
 
     Examples:
-        v8x cluster configuration-preset delete user-service shell-sm -c my-cluster --force
+        v8x cluster configuration-preset delete cloud-shell shell-sm -c my-cluster --force
     """
     console = ctx.obj.console
 

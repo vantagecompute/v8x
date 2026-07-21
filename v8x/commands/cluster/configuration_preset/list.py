@@ -74,7 +74,7 @@ async def list_configuration_presets(
 
     Examples:
         v8x cluster configuration-preset list -c my-cluster
-        v8x cluster configuration-preset list -c my-cluster --kind user-service
+        v8x cluster configuration-preset list -c my-cluster --kind cloud-shell
     """
     console = ctx.obj.console
 

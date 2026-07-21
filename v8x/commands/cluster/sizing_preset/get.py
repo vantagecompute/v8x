@@ -16,7 +16,7 @@ import json
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
-from vantage_sdk.workbench.sizing_preset import SIZING_PRESET_KINDS, sizing_preset_sdk
+from vantage_sdk.workbench.sizing_preset import SIZING_WORKLOADS, sizing_preset_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
@@ -30,9 +30,9 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 @attach_vantage_rest_client
 async def get_sizing_preset(
     ctx: typer.Context,
-    kind: Annotated[
+    workload: Annotated[
         str,
-        typer.Argument(help=f"Preset kind: {', '.join(sorted(SIZING_PRESET_KINDS))}"),
+        typer.Argument(help=f"Workload catalog: {', '.join(sorted(SIZING_WORKLOADS))}"),
     ],
     name: Annotated[
         str,
@@ -47,28 +47,28 @@ async def get_sizing_preset(
         ),
     ],
 ):
-    """Get a single sizing preset by kind and name.
+    """Get a single sizing preset by workload and name.
 
     Examples:
-        v8x cluster sizing-preset get user-service shell-sm -c my-cluster
-        v8x cluster sizing-preset get inference gpu-md -c my-cluster
+        v8x cluster sizing-preset get cloud-shell shell-sm -c my-cluster
+        v8x cluster sizing-preset get kubeflow-inference gpu-md -c my-cluster
     """
     console = ctx.obj.console
 
     try:
-        console.print(f"[dim]Fetching {kind} sizing preset '{name}'...[/dim]")
+        console.print(f"[dim]Fetching {workload} sizing preset '{name}'...[/dim]")
 
         response = await sizing_preset_sdk.get(
-            ctx, cluster_name=cluster_name, kind=kind, name=name
+            ctx, cluster_name=cluster_name, workload=workload, name=name
         )
 
         if response.status_code == 200:
             console.print_json(json.dumps(response.json()))
         elif response.status_code == 404:
             raise Abort(
-                f"Sizing preset not found: {kind}/{name}",
+                f"Sizing preset not found: {workload}/{name}",
                 subject="Preset Not Found",
-                log_message=f"Sizing preset not found: {kind}/{name}",
+                log_message=f"Sizing preset not found: {workload}/{name}",
             )
         else:
             try:
@@ -85,6 +85,6 @@ async def get_sizing_preset(
         raise
     except Exception as e:
         ctx.obj.formatter.render_error(
-            error_message=f"Failed to get {kind} sizing preset '{name}'.",
+            error_message=f"Failed to get {workload} sizing preset '{name}'.",
             details={"error": str(e)},
         )

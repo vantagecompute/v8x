@@ -14,7 +14,7 @@
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
-from vantage_sdk.workbench.sizing_preset import SIZING_PRESET_KINDS, sizing_preset_sdk
+from vantage_sdk.workbench.sizing_preset import SIZING_WORKLOADS, sizing_preset_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
@@ -28,9 +28,9 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 @attach_vantage_rest_client
 async def delete_sizing_preset(
     ctx: typer.Context,
-    kind: Annotated[
+    workload: Annotated[
         str,
-        typer.Argument(help=f"Preset kind: {', '.join(sorted(SIZING_PRESET_KINDS))}"),
+        typer.Argument(help=f"Workload catalog: {', '.join(sorted(SIZING_WORKLOADS))}"),
     ],
     name: Annotated[
         str,
@@ -56,21 +56,23 @@ async def delete_sizing_preset(
     """Delete a sizing preset (idempotent server-side).
 
     Examples:
-        v8x cluster sizing-preset delete user-service shell-sm -c my-cluster --force
+        v8x cluster sizing-preset delete cloud-shell shell-sm -c my-cluster --force
     """
     console = ctx.obj.console
 
     if not force:
-        confirm = typer.confirm(f"Are you sure you want to delete {kind} sizing preset '{name}'?")
+        confirm = typer.confirm(
+            f"Are you sure you want to delete {workload} sizing preset '{name}'?"
+        )
         if not confirm:
             console.print("[yellow]Deletion cancelled[/yellow]")
             return
 
     try:
-        console.print(f"[dim]Deleting {kind} sizing preset '{name}'...[/dim]")
+        console.print(f"[dim]Deleting {workload} sizing preset '{name}'...[/dim]")
 
         response = await sizing_preset_sdk.delete(
-            ctx, cluster_name=cluster_name, kind=kind, name=name
+            ctx, cluster_name=cluster_name, workload=workload, name=name
         )
 
         if response.status_code in (200, 204):
@@ -90,6 +92,6 @@ async def delete_sizing_preset(
         raise
     except Exception as e:
         ctx.obj.formatter.render_error(
-            error_message=f"Failed to delete {kind} sizing preset '{name}'.",
+            error_message=f"Failed to delete {workload} sizing preset '{name}'.",
             details={"error": str(e)},
         )

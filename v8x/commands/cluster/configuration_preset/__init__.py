@@ -9,7 +9,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
-"""Configuration preset commands (vdeployer-web /configuration-presets)."""
+"""Configuration preset commands (vdeployer-web /configuration-preset)."""
 
 from v8x import AsyncTyper
 
@@ -22,7 +22,7 @@ from .resolve import resolve_configuration_preset
 # Create the configuration-preset command group
 configuration_preset_app = AsyncTyper(
     name="configuration-preset",
-    help="Manage configuration presets (kind-specific CR-assembly options; sizing lives in sizing-presets).",
+    help="Manage configuration presets (kind-specific CR-assembly options; sizing lives in size-preset catalogs).",
     invoke_without_command=True,
     no_args_is_help=True,
 )

@@ -17,7 +17,7 @@ import typer
 from rich.table import Table
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
-from vantage_sdk.workbench.sizing_preset import SIZING_PRESET_KINDS, sizing_preset_sdk
+from vantage_sdk.workbench.sizing_preset import SIZING_WORKLOADS, sizing_preset_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
@@ -39,12 +39,12 @@ async def list_sizing_presets(
             help="Name of the parent K8s cluster",
         ),
     ],
-    kind: Annotated[
+    workload: Annotated[
         Optional[str],
         typer.Option(
-            "--kind",
-            "-k",
-            help=f"Filter by preset kind: {', '.join(sorted(SIZING_PRESET_KINDS))}",
+            "--workload",
+            "-w",
+            help=f"Filter by workload catalog: {', '.join(sorted(SIZING_WORKLOADS))}",
         ),
     ] = None,
 ):
@@ -52,14 +52,14 @@ async def list_sizing_presets(
 
     Examples:
         v8x cluster sizing-preset list -c my-cluster
-        v8x cluster sizing-preset list -c my-cluster --kind inference
+        v8x cluster sizing-preset list -c my-cluster --workload kubeflow-inference
     """
     console = ctx.obj.console
 
     try:
         console.print("[dim]Fetching sizing presets...[/dim]")
 
-        response = await sizing_preset_sdk.list(ctx, cluster_name=cluster_name, kind=kind)
+        response = await sizing_preset_sdk.list(ctx, cluster_name=cluster_name, workload=workload)
 
         if response.status_code == 200:
             items = response.json().get("items", [])
@@ -68,7 +68,7 @@ async def list_sizing_presets(
                 return
 
             table = Table(title=f"Sizing Presets ({len(items)} total)")
-            table.add_column("Kind", style="cyan")
+            table.add_column("Workload", style="cyan")
             table.add_column("Name", style="green")
             table.add_column("CPU")
             table.add_column("Memory")
@@ -80,7 +80,7 @@ async def list_sizing_presets(
                 sizing = p.get("sizing") or {}
                 gpu = sizing.get("gpu") or {}
                 table.add_row(
-                    p.get("kind", "?"),
+                    p.get("workload", "?"),
                     p.get("name", "?"),
                     str(sizing.get("cpu", "-")),
                     str(sizing.get("memory", "-")),
