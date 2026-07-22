@@ -1,6 +1,6 @@
 [project]
 name = "v8x"
-version = "0.1.8"
+version = "0.1.35"
 description = "The v8x CLI for Vantage Compute."
 authors = [
     {name = "jamesbeedy", email = "james@vantagecompute.ai"}
@@ -28,7 +28,7 @@ dependencies = [
     "pyyaml>=6.0.3",
     "pyopenssl>=25.3.0",
     "qrcode>=8.0.0",
-    "vantage-sdkpy>=0.1.18",
+    "vantage-sdkpy>=0.1.21",
 ]
 
 [tool.hatch.build.targets.wheel]

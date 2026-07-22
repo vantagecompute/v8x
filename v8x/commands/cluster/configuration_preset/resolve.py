@@ -33,7 +33,7 @@ async def resolve_configuration_preset(
     ctx: typer.Context,
     name: Annotated[
         str,
-        typer.Argument(help="Preset name, or '@default' for the kind's default preset"),
+        typer.Argument(help="Preset name"),
     ],
     cluster_name: Annotated[
         str,
@@ -43,12 +43,12 @@ async def resolve_configuration_preset(
         str,
         typer.Option("--kind", "-k", help="Configuration preset kind (e.g. kserve, trainjob)"),
     ] = "kserve",
-    sizing_preset: Annotated[
+    size_preset: Annotated[
         Optional[str],
         typer.Option(
-            "--sizing-preset",
+            "--size-preset",
             "-p",
-            help="Request-level sizing preset (overrides the preset's bundle)",
+            help="Request-level size preset (overrides the preset's bundle)",
         ),
     ] = None,
     overrides_json: Annotated[
@@ -69,7 +69,7 @@ async def resolve_configuration_preset(
     Examples:
         v8x cluster configuration-preset resolve gpu-medium -c my-cluster -k kserve
 
-        v8x cluster configuration-preset resolve @default -c my-cluster -k kserve \\
+        v8x cluster configuration-preset resolve gpu-medium -c my-cluster -k kserve \\
             --overrides-json '{"env": {"LOG_LEVEL": "debug"}}'
     """
     console = ctx.obj.console
@@ -95,7 +95,7 @@ async def resolve_configuration_preset(
             cluster_name=cluster_name,
             kind=kind,
             name=name,
-            sizing_preset=sizing_preset,
+            size_preset=size_preset,
             overrides=overrides,
         )
         if response.status_code == 200:

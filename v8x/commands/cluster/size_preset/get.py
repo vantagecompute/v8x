@@ -9,12 +9,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <https://www.gnu.org/licenses/>.
-"""Delete sizing preset command."""
+"""Get size preset command."""
+
+import json
 
 import typer
 from typing_extensions import Annotated
 from vantage_sdk.exceptions import Abort
-from vantage_sdk.workbench.sizing_preset import SIZING_WORKLOADS, sizing_preset_sdk
+from vantage_sdk.workbench.size_preset import SIZING_WORKLOADS, size_preset_sdk
 
 from v8x.auth import attach_persona
 from v8x.config import attach_settings
@@ -26,7 +28,7 @@ from v8x.vantage_rest_api_client import attach_vantage_rest_client
 @attach_settings
 @attach_persona
 @attach_vantage_rest_client
-async def delete_sizing_preset(
+async def get_size_preset(
     ctx: typer.Context,
     workload: Annotated[
         str,
@@ -44,54 +46,45 @@ async def delete_sizing_preset(
             help="Name of the parent K8s cluster",
         ),
     ],
-    force: Annotated[
-        bool,
-        typer.Option(
-            "--force",
-            "-f",
-            help="Skip confirmation prompt",
-        ),
-    ] = False,
 ):
-    """Delete a sizing preset (idempotent server-side).
+    """Get a single size preset by workload and name.
 
     Examples:
-        v8x cluster sizing-preset delete cloud-shell shell-sm -c my-cluster --force
+        v8x cluster size-preset get cloud-shell shell-sm -c my-cluster
+        v8x cluster size-preset get kubeflow-inference gpu-md -c my-cluster
     """
     console = ctx.obj.console
 
-    if not force:
-        confirm = typer.confirm(
-            f"Are you sure you want to delete {workload} sizing preset '{name}'?"
-        )
-        if not confirm:
-            console.print("[yellow]Deletion cancelled[/yellow]")
-            return
-
     try:
-        console.print(f"[dim]Deleting {workload} sizing preset '{name}'...[/dim]")
+        console.print(f"[dim]Fetching {workload} size preset '{name}'...[/dim]")
 
-        response = await sizing_preset_sdk.delete(
+        response = await size_preset_sdk.get(
             ctx, cluster_name=cluster_name, workload=workload, name=name
         )
 
-        if response.status_code in (200, 204):
-            console.print(f"[green]✓[/green] Sizing preset '{name}' deleted")
+        if response.status_code == 200:
+            console.print_json(json.dumps(response.json()))
+        elif response.status_code == 404:
+            raise Abort(
+                f"Size preset not found: {workload}/{name}",
+                subject="Preset Not Found",
+                log_message=f"Size preset not found: {workload}/{name}",
+            )
         else:
             try:
                 error_detail = response.json().get("detail", response.text)
             except Exception:
                 error_detail = response.text or f"HTTP {response.status_code}"
             raise Abort(
-                f"Failed to delete sizing preset: {error_detail}",
-                subject="Preset Delete Failed",
-                log_message=f"Sizing preset delete failed: {error_detail}",
+                f"Failed to get size preset: {error_detail}",
+                subject="Preset Get Failed",
+                log_message=f"Size preset get failed: {error_detail}",
             )
 
     except Abort:
         raise
     except Exception as e:
         ctx.obj.formatter.render_error(
-            error_message=f"Failed to delete {workload} sizing preset '{name}'.",
+            error_message=f"Failed to get {workload} size preset '{name}'.",
             details={"error": str(e)},
         )

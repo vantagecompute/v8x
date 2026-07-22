@@ -30,7 +30,7 @@ from .network import network_app
 from .nim import nim_app
 from .secret import secret_app
 from .service import service_app
-from .sizing_preset import sizing_preset_app
+from .size_preset import size_preset_app
 from .slurm import slurm_app
 from .update import update_cluster
 from .workspace_preset import workspace_preset_app
@@ -64,6 +64,6 @@ cluster_app.add_typer(nim_app, name="nim")
 cluster_app.add_typer(kubeflow_app, name="kubeflow")
 cluster_app.add_typer(secret_app, name="secret")
 cluster_app.add_typer(service_app, name="service")
-cluster_app.add_typer(sizing_preset_app, name="sizing-preset")
+cluster_app.add_typer(size_preset_app, name="size-preset")
 cluster_app.add_typer(slurm_app, name="slurm")
 cluster_app.add_typer(workspace_preset_app, name="workspace-preset")

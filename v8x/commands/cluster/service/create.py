@@ -49,22 +49,14 @@ async def create_user_service(
             help="Optional custom service name (auto-generated when omitted).",
         ),
     ] = None,
-    preset: Annotated[
-        str | None,
-        typer.Option(
-            "--sizing-preset",
-            "-p",
-            help="Sizing preset name supplying cpu/memory and the compute pool "
-            "(see 'v8x cluster sizing-preset list --kind user-service').",
-        ),
-    ] = None,
     configuration_preset: Annotated[
         str | None,
         typer.Option(
             "--configuration-preset",
             "-C",
             help="Configuration preset name supplying image version, Slurm attachment, "
-            "and extra labels (see 'v8x cluster configuration-preset list --kind user-service').",
+            "extra labels, and the bundled size preset "
+            "(see 'v8x cluster configuration-preset list --kind user-service').",
         ),
     ] = None,
     image: Annotated[
@@ -88,19 +80,19 @@ async def create_user_service(
 
     Creates a user-specific service like PVC viewer, cloud shell, or remote desktop.
     The username is automatically determined from your authenticated identity, and
-    sizing/scheduling comes from the referenced preset.
+    sizing/scheduling comes from the size preset bundled in the configuration preset.
 
     Examples:
         # Create a PVC viewer with workload defaults
         v8x cluster service create pvc-viewer --cluster my-cluster
 
-        # Create a cloud shell from the split presets
+        # Create a cloud shell from a configuration preset
         v8x cluster service create cloud-shell -c my-cluster \\
-            --sizing-preset shell-sm --configuration-preset shell-sm
+            --configuration-preset shell-sm
 
         # Create a remote desktop with a resolution override
         v8x cluster service create remote-desktop -c my-cluster \\
-            -p desktop-md -C desktop-md -r 2560x1440
+            -C desktop-md -r 2560x1440
 
         # Create a cloud shell with a specific image tag
         v8x cluster service create cloud-shell -c my-cluster --image resolute-0.2
@@ -128,7 +120,6 @@ async def create_user_service(
             cluster_name=cluster_name,
             workload=workload_lower,
             name=name,
-            sizing_preset=preset,
             configuration_preset=configuration_preset,
             image=image,
             resolution=resolution,
@@ -140,8 +131,8 @@ async def create_user_service(
             console.print(f"  Service ID: {result.get('id', 'N/A')}")
             console.print(f"  URL: {result.get('url', 'N/A')}")
             console.print(f"  Status: {result.get('status', 'N/A')}")
-            if result.get("sizing_preset"):
-                console.print(f"  Sizing Preset: {result.get('sizing_preset')}")
+            if result.get("size_preset"):
+                console.print(f"  Size Preset: {result.get('size_preset')}")
             if result.get("configuration_preset"):
                 console.print(f"  Configuration Preset: {result.get('configuration_preset')}")
             options = result.get("options") or {}
