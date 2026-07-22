@@ -145,10 +145,10 @@ def validate_token_and_extract_identity(token_set: TokenSet) -> IdentityData:
         if "organization" not in token_data or not token_data["organization"]:
             raise Abort(
                 """
-                The access token is missing organization information.
+                Authentication failed because your user account is not assigned to an organization.
 
-                Please ensure your user account is associated with an organization
-                and try logging in again.
+                Please ask your administrator to add your account to an organization,
+                or contact Vantage support if you believe this is a mistake.
                 """,
                 subject="Missing organization info",
                 log_message="Access token missing organization information",
