@@ -13,6 +13,7 @@
 
 from v8x import AsyncTyper
 
+from .blueprint import blueprint_app
 from .compute_pool import compute_pool_app
 from .configuration_preset import configuration_preset_app
 from .create import create_cluster
@@ -26,8 +27,11 @@ from .kubeflow import kubeflow_app
 from .list import list_clusters
 from .model_registry import model_registry_app
 from .namespace import namespace_app
+from .nemo import nemo_app
 from .network import network_app
+from .ngc_container import ngc_container_app
 from .nim import nim_app
+from .ray import ray_app
 from .secret import secret_app
 from .service import service_app
 from .size_preset import size_preset_app
@@ -52,6 +56,7 @@ cluster_app.command("list")(list_clusters)
 cluster_app.command("update")(update_cluster)
 
 # Add nested command groups
+cluster_app.add_typer(blueprint_app, name="blueprint")
 cluster_app.add_typer(compute_pool_app, name="compute-pool")
 cluster_app.add_typer(configuration_preset_app, name="configuration-preset")
 cluster_app.add_typer(dynamo_app, name="dynamo")
@@ -59,9 +64,12 @@ cluster_app.add_typer(federation_app, name="federation")
 cluster_app.add_typer(inference_endpoint_app, name="inference-endpoint")
 cluster_app.add_typer(model_registry_app, name="model-registry")
 cluster_app.add_typer(namespace_app, name="namespace")
+cluster_app.add_typer(nemo_app, name="nemo")
 cluster_app.add_typer(network_app, name="network")
+cluster_app.add_typer(ngc_container_app, name="ngc-container")
 cluster_app.add_typer(nim_app, name="nim")
 cluster_app.add_typer(kubeflow_app, name="kubeflow")
+cluster_app.add_typer(ray_app, name="ray")
 cluster_app.add_typer(secret_app, name="secret")
 cluster_app.add_typer(service_app, name="service")
 cluster_app.add_typer(size_preset_app, name="size-preset")
