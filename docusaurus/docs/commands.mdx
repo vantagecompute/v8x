@@ -580,6 +580,7 @@ This document provides a comprehensive reference for all available CLI commands 
 │ get                   Get details of a specific Vantage cluster.             │
 │ list                  List all Vantage clusters.                             │
 │ update                Update an existing Vantage cluster.                    │
+│ blueprint             Browse the curated NVIDIA AI Blueprint catalog.        │
 │ compute-pool          Manage compute pools (autoscaler pools) within a       │
 │                       Vantage K8s cluster.                                   │
 │ configuration-preset  Manage configuration presets (kind-specific            │
@@ -593,9 +594,13 @@ This document provides a comprehensive reference for all available CLI commands 
 │ model-registry        Manage models in the cluster model registry (onboard,  │
 │                       list, version, delete).                                │
 │ namespace             Manage namespaces on a Vantage K8s cluster.            │
+│ nemo                  Browse the in-cluster NeMo microservices catalogs      │
+│                       (Customizer / Evaluator).                              │
 │ network               Manage Multus networks on a Vantage K8s cluster.       │
+│ ngc-container         Browse the curated NGC framework container catalog.    │
 │ nim                   Manage NVIDIA NIM deployments on a cluster.            │
 │ kubeflow              Manage Kubeflow ML platform on a Vantage K8s cluster.  │
+│ ray                   Manage Ray jobs and clusters (KubeRay) on a cluster.   │
 │ secret                Manage secrets (HuggingFace tokens, S3 credentials) in │
 │                       your profile namespace.                                │
 │ service               Enable, disable, update, or manage user services on a  │
@@ -919,6 +924,84 @@ This document provides a comprehensive reference for all available CLI commands 
 
 ```
 
+
+</TabItem>
+<TabItem value="cluster-blueprint" label="blueprint">
+
+<Tabs>
+<TabItem value="cluster-blueprint-main" label="🔹 blueprint">
+
+```text
+
+ Usage: v8x cluster blueprint [OPTIONS] COMMAND [ARGS]...
+
+ Browse the curated NVIDIA AI Blueprint catalog.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ list  List curated NVIDIA AI Blueprints.                                     │
+│ get   Get one curated NVIDIA AI Blueprint.                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+</TabItem>
+<TabItem value="cluster-blueprint-list" label="list">
+
+```text
+
+ Usage: v8x cluster blueprint list [OPTIONS]
+
+ List curated NVIDIA AI Blueprints.
+
+ Examples:
+ v8x cluster blueprint list -c my-cluster --status available
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --cluster  -c      &lt;str&gt;  Cluster name [required]                         │
+│    --status   -s      &lt;str&gt;  Filter: available, roadmap                      │
+│    --json     -j             Output in JSON format                           │
+│    --verbose  -v             Enable verbose terminal output                  │
+│    --profile  -p      &lt;str&gt;  Profile name to use                             │
+│    --help                    Show this message and exit.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+
+</TabItem>
+<TabItem value="cluster-blueprint-get" label="get">
+
+```text
+
+ Usage: v8x cluster blueprint get [OPTIONS] {blueprint_id}
+
+ Get one curated NVIDIA AI Blueprint.
+
+ Examples:
+ v8x cluster blueprint get nvidia-rag -c my-cluster
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    blueprint_id      &lt;str&gt;  Blueprint ID (e.g. nvidia-rag) [required]      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --cluster  -c      &lt;str&gt;  Cluster name [required]                         │
+│    --json     -j             Output in JSON format                           │
+│    --verbose  -v             Enable verbose terminal output                  │
+│    --profile  -p      &lt;str&gt;  Profile name to use                             │
+│    --help                    Show this message and exit.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+
+</TabItem>
+</Tabs>
 
 </TabItem>
 <TabItem value="cluster-dynamo" label="dynamo">
@@ -1404,6 +1487,29 @@ This document provides a comprehensive reference for all available CLI commands 
 
 </TabItem>
 </Tabs>
+
+</TabItem>
+<TabItem value="cluster-nemo" label="nemo">
+
+```text
+
+ Usage: v8x cluster nemo [OPTIONS] COMMAND [ARGS]...
+
+ Browse the in-cluster NeMo microservices catalogs (Customizer / Evaluator).
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ customization-configs  List NeMo Customizer fine-tuning recipes (model x     │
+│                        technique).                                           │
+│ customization-targets  List NeMo Customizer fine-tunable base models.        │
+│ evaluation-configs     List NeMo Evaluator configs.                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
 
 </TabItem>
 <TabItem value="cluster-network" label="network">
@@ -1982,6 +2088,184 @@ This document provides a comprehensive reference for all available CLI commands 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ *  --cluster  -c      &lt;str&gt;  Name of the parent K8s cluster [required]       │
 │    --yes      -y             Skip confirmation prompt                        │
+│    --json     -j             Output in JSON format                           │
+│    --verbose  -v             Enable verbose terminal output                  │
+│    --profile  -p      &lt;str&gt;  Profile name to use                             │
+│    --help                    Show this message and exit.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+
+</TabItem>
+</Tabs>
+
+</TabItem>
+<TabItem value="cluster-ray" label="ray">
+
+<Tabs>
+<TabItem value="cluster-ray-main" label="🔹 ray">
+
+```text
+
+ Usage: v8x cluster ray [OPTIONS] COMMAND [ARGS]...
+
+ Manage Ray jobs and clusters (KubeRay) on a cluster.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ create    Submit a Ray job (KubeRay RayJob).                                 │
+│ list      List Ray jobs.                                                     │
+│ get       Get a Ray job.                                                     │
+│ delete    Delete a Ray job (KubeRay tears down the associated RayCluster).   │
+│ clusters  List Ray clusters, or show one by name.                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+</TabItem>
+<TabItem value="cluster-ray-create" label="create">
+
+```text
+
+ Usage: v8x cluster ray create [OPTIONS] {name}
+
+ Submit a Ray job (KubeRay RayJob).
+
+ Examples:
+ v8x cluster ray create train-1 -c my-cluster -e "python train.py" \\
+     -C ray-md --overrides-json '{"workers": 3}'
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    name      &lt;str&gt;  RayJob name [required]                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --cluster               -c      &lt;str&gt;  Cluster name [required]            │
+│ *  --entrypoint            -e      &lt;str&gt;  Ray job entrypoint (e.g. 'python   │
+│                                           train.py')                         │
+│                                           [required]                         │
+│    --namespace             -n      &lt;str&gt;  Target namespace (default: your    │
+│                                           profile ns)                        │
+│    --configuration-preset  -C      &lt;str&gt;  ray configuration preset;          │
+│                                           overrides win over preset values   │
+│    --size-preset           -p      &lt;str&gt;  ray size preset for the worker pod │
+│                                           shape (overrides the preset's      │
+│                                           bundle)                            │
+│    --overrides-json                &lt;str&gt;  Options JSON merged over the       │
+│                                           preset (image, workers,            │
+│                                           runtime_env, env, model_endpoints, │
+│                                           ...)                               │
+│    --json                  -j             Output in JSON format              │
+│    --verbose               -v             Enable verbose terminal output     │
+│    --profile               -p      &lt;str&gt;  Profile name to use                │
+│    --help                                 Show this message and exit.        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+
+</TabItem>
+<TabItem value="cluster-ray-list" label="list">
+
+```text
+
+ Usage: v8x cluster ray list [OPTIONS]
+
+ List Ray jobs.
+
+ Examples:
+ v8x cluster ray list -c my-cluster
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --cluster  -c      &lt;str&gt;  Cluster name [required]                         │
+│    --json     -j             Output in JSON format                           │
+│    --verbose  -v             Enable verbose terminal output                  │
+│    --profile  -p      &lt;str&gt;  Profile name to use                             │
+│    --help                    Show this message and exit.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+
+</TabItem>
+<TabItem value="cluster-ray-get" label="get">
+
+```text
+
+ Usage: v8x cluster ray get [OPTIONS] {name}
+
+ Get a Ray job.
+
+ Examples:
+ v8x cluster ray get train-1 -c my-cluster
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    name      &lt;str&gt;  RayJob name [required]                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --cluster  -c      &lt;str&gt;  Cluster name [required]                         │
+│    --json     -j             Output in JSON format                           │
+│    --verbose  -v             Enable verbose terminal output                  │
+│    --profile  -p      &lt;str&gt;  Profile name to use                             │
+│    --help                    Show this message and exit.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+
+</TabItem>
+<TabItem value="cluster-ray-delete" label="delete">
+
+```text
+
+ Usage: v8x cluster ray delete [OPTIONS] {name}
+
+ Delete a Ray job (KubeRay tears down the associated RayCluster).
+
+ Examples:
+ v8x cluster ray delete train-1 -c my-cluster
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    name      &lt;str&gt;  RayJob name [required]                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --cluster  -c      &lt;str&gt;  Cluster name [required]                         │
+│    --force    -f             Skip confirmation                               │
+│    --json     -j             Output in JSON format                           │
+│    --verbose  -v             Enable verbose terminal output                  │
+│    --profile  -p      &lt;str&gt;  Profile name to use                             │
+│    --help                    Show this message and exit.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+
+</TabItem>
+<TabItem value="cluster-ray-clusters" label="clusters">
+
+```text
+
+ Usage: v8x cluster ray clusters [OPTIONS] [name]
+
+ List Ray clusters, or show one by name.
+
+ Examples:
+ v8x cluster ray clusters -c my-cluster
+ v8x cluster ray clusters train-1-raycluster -c my-cluster
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   name      &lt;str&gt;  RayCluster name (omit to list all)                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --cluster  -c      &lt;str&gt;  Cluster name [required]                         │
 │    --json     -j             Output in JSON format                           │
 │    --verbose  -v             Enable verbose terminal output                  │
 │    --profile  -p      &lt;str&gt;  Profile name to use                             │
